@@ -1,15 +1,16 @@
 #define macros
-EXECUTABLE_NAME_X86 = WootingProfileSwitcher_x86.exe
-EXECUTABLE_NAME = WootingProfileSwitcher.exe
+APPNAME = WootingProfileSwitcher
+EXECUTABLE_NAME_X86 = $(APPNAME)_x86.exe
+EXECUTABLE_NAME = $(APPNAME).exe
 DIR_SRC = ..\src
-DIR_INCLUDE = .\include\wooting-rgb-sdk
+DIR_INCLUDE = .\include\x64\wooting-rgb-sdk
 DIR_INCLUDE_X86 = .\include\x86\wooting-rgb-sdk
 DIR_LIB = .\lib\x64
 DIR_LIB_X86 = .\lib\x86
-LIB_DEPENDENCIES = User32.lib wooting-rgb-sdk64.lib
-LIB_DEPENDENCIES_X86 = User32.lib wooting-rgb-sdk.lib
+LIB_DEPENDENCIES = ucrt.lib User32.lib wooting-rgb-sdk64.lib
+LIB_DEPENDENCIES_X86 = ucrt.lib User32.lib wooting-rgb-sdk.lib
 
-
+# Flexible folder macros
 DIR_BUILD = .\build
 DIR_BIN = $(DIR_BUILD)\bin
 DIR_REL_BASE = $(DIR_BIN)\release
@@ -26,36 +27,50 @@ DIR_INTERMEDIATE_DBG_BASE = $(DIR_INTERMEDIATE_BASE)\debug
 DIR_INTERMEDIATE_DBG = $(DIR_INTERMEDIATE_DBG_BASE)\x64
 DIR_INTERMEDIATE_DBG_X86 = $(DIR_INTERMEDIATE_DBG_BASE)\x86
 
+# Linker arguments
 LINK_LEAN = /D "WIN32_LEAN_AND_MEAN" /D "VC_EXTRALEAN"
+LINK_ARGS = /NODEFAULTLIB /ENTRY:main
 
-DEBUG = /DDEBUG
+# Linker macro for use in compiler macros
+LINK_X86 = /link /MACHINE:X86 $(LINK_ARGS) /LIBPATH:$(DIR_LIB_X86) $(LIB_DEPENDENCIES_X86)
+LINK_X64 = /link /MACHINE:X64 $(LINK_ARGS) /LIBPATH:$(DIR_LIB) $(LIB_DEPENDENCIES)
 
+# compiler macro
+COMPILER_X86 = \$(EXECUTABLE_NAME_X86) /EHsc /D "_X86_" $(LINK_LEAN) /I$(DIR_INCLUDE_X86) $(SRC_FILES) $(LINK_X86)
+COMPILER_X64 = \$(EXECUTABLE_NAME) /EHsc /D "_X64_" $(LINK_LEAN) /I$(DIR_INCLUDE) $(SRC_FILES) $(LINK_X64)
+
+# Debug macro
+DEBUG = /D "DEBUG"
+
+# Macro for all used source files
 SRC_FILES= \
   $(DIR_SRC)\main.c \
   $(DIR_SRC)\windows.c
 
 # description block
-$(EXECUTABLE_NAME_X86): call "%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x86
-  $(SRC_FILES)
-  cl /EHsc /D "_X86_" $(LINK_LEAN) /Fe$(DIR_REL_X86)\$(EXECUTABLE_NAME_X86) /I$(DIR_INCLUDE_X86) $(SRC_FILES) /link /LIBPATH:$(DIR_LIB_X86) $(LIB_DEPENDENCIES_X86)
+$(EXECUTABLE_NAME_X86): $(SRC_FILES)
+  cl /Fe$(DIR_REL_X86)$(COMPILER_X86)
   copy *.obj $(DIR_INTERMEDIATE_REL_X86)
   del *.obj
+  copy $(DIR_LIB_X86)\wooting-rgb-sdk.dll $(DIR_REL_X86)
 
-$(EXECUTABLE_NAME): call "%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
-  $(SRC_FILES)
-  cl /EHsc /D "_X64_" $(LINK_LEAN) /Fe$(DIR_REL)\$(EXECUTABLE_NAME) /I$(DIR_INCLUDE) $(SRC_FILES) /link /LIBPATH:$(DIR_LIB) $(LIB_DEPENDENCIES)
+$(EXECUTABLE_NAME): $(SRC_FILES)
+  cl /Fe$(DIR_REL)$(COMPILER_X64)
   copy *.obj $(DIR_INTERMEDIATE_REL)
   del *.obj
+  copy $(DIR_LIB)\wooting-rgb-sdk.dll $(DIR_REL)
 
 $(EXECUTABLE_NAME_X86)_DBG: $(SRC_FILES)
-  cl /EHsc /D "_X86_" $(LINK_LEAN) $(DEBUG) /Fe$(DIR_DBG_X86)\$(EXECUTABLE_NAME_X86) /I$(DIR_INCLUDE_X86) $(SRC_FILES) /link /LIBPATH:$(DIR_LIB_X86) $(LIB_DEPENDENCIES_X86) /VERBOSE
+  cl $(DEBUG) /Fe$(DIR_DBG_X86)$(COMPILER_X86) /VERBOSE
   copy *.obj $(DIR_INTERMEDIATE_DBG_X86)
   del *.obj
+  copy $(DIR_LIB_X86)\wooting-rgb-sdk.dll $(DIR_DBG_X86)
 
 $(EXECUTABLE_NAME)_DBG: $(SRC_FILES)
-  cl /EHsc /D "_X64_" $(LINK_LEAN) $(DEBUG) /Fe$(DIR_DBG)\$(EXECUTABLE_NAME) /I$(DIR_INCLUDE) $(SRC_FILES) /link /LIBPATH:$(DIR_LIB) $(LIB_DEPENDENCIES) /VERBOSE
+  cl $(DEBUG) /Fe$(DIR_DBG)$(COMPILER_X64) /VERBOSE
   copy *.obj $(DIR_INTERMEDIATE_DBG)
   del *.obj
+  copy $(DIR_LIB)\wooting-rgb-sdk.dll $(DIR_DBG)
 
 # build application
 wooting_profile_switcher: $(EXECUTABLE_NAME_X86) $(EXECUTABLE_NAME)
