@@ -1,3 +1,11 @@
+#ifdef _WIN32
+#include "windows.h"
+#elif __APPLE__
+#include "mac.h"
+#elif __linux__
+#include "linux.h"
+#endif
+#include "main.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
