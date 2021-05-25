@@ -1,5 +1,4 @@
 #ifdef _WIN32
-#include "windows.h"
 #elif __APPLE__
 #include "mac.h"
 #elif __linux__
@@ -10,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wooting-rgb-sdk.h>
+#include "windows.h"
 
 struct Process
 {
