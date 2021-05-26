@@ -47,6 +47,7 @@ void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idO
 
 void start_listening()
 {
+    SetConsoleTitle(TEXT("Wooting Profile Switcher"));
     initialize_event_hook();
 
     MSG msg;
@@ -60,12 +61,12 @@ void start_listening()
 char* last_occurence(char* str, char chr)
 {
     int i, index;
-    for(i = 0; i <= strlen(str); i++)
+    for(i = strlen(str) - 1; i >= 0 ; i--)
     {
         if(str[i] == chr)
         {
-            index = i;
+            return str+i;
         }
     }
-    return str+index;
+    return str;
 }
