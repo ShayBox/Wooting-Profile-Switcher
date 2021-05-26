@@ -1,9 +1,4 @@
 #include "linux.h"
-#include "main.h"
-#include <stdbool.h>
-#include <string.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
 
 struct WindowInfo get_window_hint(Display *display)
 {
