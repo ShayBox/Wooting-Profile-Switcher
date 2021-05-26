@@ -1,4 +1,5 @@
 #ifdef _WIN32
+#include "win_native.h"
 #elif __APPLE__
 #include "mac.h"
 #elif __linux__
@@ -64,9 +65,9 @@ void update_profile(const char *name)
         const char ReloadProfile0 = 7;
         const char WootDevResetAll = 32;
         const char RefreshRgbColors = 29;
-        wooting_usb_send_feature(ActivateProfile, 0, 0, 0, new_profile);  // Change profile
-        wooting_usb_send_feature(ReloadProfile0, 0, 0, 0, new_profile);   // Change RGB
-        wooting_usb_send_feature(WootDevResetAll, 0, 0, 0, 0);            // Reset (Load RGB)
-        wooting_usb_send_feature(RefreshRgbColors, 0, 0, 0, new_profile); // Refresh RGB (Load Effect)
+        // wooting_usb_send_feature(ActivateProfile, 0, 0, 0, new_profile);  // Change profile
+        // wooting_usb_send_feature(ReloadProfile0, 0, 0, 0, new_profile);   // Change RGB
+        // wooting_usb_send_feature(WootDevResetAll, 0, 0, 0, 0);            // Reset (Load RGB)
+        // wooting_usb_send_feature(RefreshRgbColors, 0, 0, 0, new_profile); // Refresh RGB (Load Effect)
     }
 }

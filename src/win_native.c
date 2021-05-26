@@ -1,9 +1,9 @@
-#include "windows.h"
+#include "win_native.h"
 
 HWINEVENTHOOK event_hook;
 char *old_name = "";
 
-void initilize_event_hook()
+void initialize_event_hook()
 {
     event_hook = SetWinEventHook(
         EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND,  	// Event Range to handle
@@ -22,18 +22,25 @@ void cleanup()
 void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idObject, LONG idChild, 
                                 DWORD dwEventThread, DWORD dwmsEventTime)
 {
-    LPSTR title;
+    LPSTR title = malloc(256);
     GetWindowTextA(hwnd, title, 256);
 
     DWORD tid, pid;
     tid = GetWindowThreadProcessId(hwnd, &pid);
 
-#ifdef DEBUG
-    printf("%s, %d, %d", title, tid, pid);
+#ifdef _DEBUG
+    printf("%s, %d, %d\n", title, tid, pid);
 #endif
 }
 
 void start_listening()
 {
-    initilize_event_hook();
+    initialize_event_hook();
+
+    MSG msg;
+    while(GetMessage(&msg, NULL, 0, 0) > 0)
+    {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
 }
