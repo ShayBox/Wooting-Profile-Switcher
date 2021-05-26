@@ -67,5 +67,5 @@ char* last_occurence(char* str, char chr)
             index = i;
         }
     }
-    return &str[index];
+    return str+index;
 }
