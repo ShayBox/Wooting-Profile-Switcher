@@ -1,7 +1,9 @@
 #include "win_native.h"
 
 HWINEVENTHOOK event_hook;
-char *old_name = "";
+
+LPSTR old_title[256];
+LPSTR old_proc_title[2048];
 
 void initialize_event_hook()
 {
@@ -39,6 +41,14 @@ void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idO
 #ifdef _DEBUG
     printf("%s, %d, %s, %d\n", title, tid, proc_title, pid);
 #endif
+
+    if (strcmp(old_title, title) || strcmp(old_proc_title, proc_title))
+    {
+        strcpy(old_title, title);
+        strcpy(old_proc_title, proc_title);
+
+        update_profile(title, proc_title);
+    }
 
     free(title);
     free(proc_path);

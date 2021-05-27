@@ -16,7 +16,8 @@ struct Process
 // TODO: Add config file
 const struct Process process_list[] = {
 #ifdef _WIN32
-    {"", 0},
+    {"Isaac", 1},
+    {"isaac-ng.exe", 2},
 #elif __APPLE__
     {"", 0},
 #elif __linux__
@@ -38,16 +39,17 @@ int main()
 }
 
 int last_profile = -1;
-void update_profile(const char *name)
+void update_profile(const char *name, const char *proc_name)
 {
     puts(name); // Process name for users
+    puts(proc_name); // Process name for users
 
     int new_profile = 0; // Default to Digital Profile
     size_t process_list_size = sizeof(process_list) / sizeof(process_list[0]);
     for (size_t i = 0; i < process_list_size; i++)
     {
         struct Process process = process_list[i];
-        if (strcmp(name, process.name) == 0)
+        if (strcmp(name, process.name) == 0 || strcmp(proc_name, process.name) == 0)
             new_profile = process.profile;
     }
 
@@ -60,9 +62,9 @@ void update_profile(const char *name)
         const char ReloadProfile0 = 7;
         const char WootDevResetAll = 32;
         const char RefreshRgbColors = 29;
-        // wooting_usb_send_feature(ActivateProfile, 0, 0, 0, new_profile);  // Change profile
-        // wooting_usb_send_feature(ReloadProfile0, 0, 0, 0, new_profile);   // Change RGB
-        // wooting_usb_send_feature(WootDevResetAll, 0, 0, 0, 0);            // Reset (Load RGB)
-        // wooting_usb_send_feature(RefreshRgbColors, 0, 0, 0, new_profile); // Refresh RGB (Load Effect)
+        wooting_usb_send_feature(ActivateProfile, 0, 0, 0, new_profile);  // Change profile
+        wooting_usb_send_feature(ReloadProfile0, 0, 0, 0, new_profile);   // Change RGB
+        wooting_usb_send_feature(WootDevResetAll, 0, 0, 0, 0);            // Reset (Load RGB)
+        wooting_usb_send_feature(RefreshRgbColors, 0, 0, 0, new_profile); // Refresh RGB (Load Effect)
     }
 }

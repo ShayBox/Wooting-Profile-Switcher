@@ -8,8 +8,7 @@ BIN64 = %VCToolsInstallDir%bin\Hostx64\x64
 AUX_DIR = %VCToolsInstallDir%..\..\..\Auxiliary\Build
 
 DIR_SRC = ..\src
-DIR_INCLUDE = .\include\x64\wooting-rgb-sdk
-DIR_INCLUDE_X86 = .\include\x86\wooting-rgb-sdk
+DIR_INCLUDE = .\include\wooting-rgb-sdk
 DIR_LIB = .\lib\x64
 DIR_LIB_X86 = .\lib\x86
 LIB_DEPENDENCIES = Kernel32.lib ucrt.lib User32.lib wooting-rgb-sdk64.lib
@@ -44,7 +43,7 @@ LINK_X64 = /link /MACHINE:X64 $(LINK_ARGS) /LIBPATH:$(DIR_LIB) $(LIB_DEPENDENCIE
 DEBUG = %DEBUG_FLAG%
 
 # compiler macro
-COMPILER_X86 = "$(BIN32)\cl.exe" $(DEBUG) /utf-8 /arch:IA32 /Fe%DIR_COMP_X86%\$(EXECUTABLE_NAME_X86) /EHsc /DWIN32 /D "_X86_" $(LINK_LEAN) /I$(DIR_INCLUDE_X86) $(SRC_FILES) $(LINK_X86)
+COMPILER_X86 = "$(BIN32)\cl.exe" $(DEBUG) /utf-8 /arch:IA32 /Fe%DIR_COMP_X86%\$(EXECUTABLE_NAME_X86) /EHsc /DWIN32 /D "_X86_" $(LINK_LEAN) /I$(DIR_INCLUDE) $(SRC_FILES) $(LINK_X86)
 COMPILER_X64 = "$(BIN64)\cl.exe" $(DEBUG) /utf-8 /Fe%DIR_COMP%\$(EXECUTABLE_NAME) /EHsc /DWIN64 /D "_X64_" $(LINK_LEAN) /I$(DIR_INCLUDE) $(SRC_FILES) $(LINK_X64)
 
 # Macro for all used source files
