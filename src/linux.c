@@ -48,8 +48,7 @@ void start_listening()
             {
                 old_class = hint.class;
                 old_name = hint.name;
-                update_profile(hint.class);
-                update_profile(hint.name);
+                update_profile(hint.name, hint.class);
             }
         }
     }
