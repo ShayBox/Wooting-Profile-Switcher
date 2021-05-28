@@ -42,10 +42,12 @@ int main()
 
 int last_profile = -1;
 const char *last_match = "";
-void update_profile(const char *match)
+int update_profile(const char *match)
 {
+    int match_found = 0;
+
     if (strcmp(match, last_match) == 0)
-        return;
+        return match_found;
     else
         last_match = match;
 
@@ -57,7 +59,10 @@ void update_profile(const char *match)
     {
         struct Process process = process_list[i];
         if (strcmp(match, process.match) == 0)
+        {
             new_profile = process.profile;
+            match_found = 1;
+        }
     }
 
     if (last_profile != new_profile)
@@ -74,4 +79,5 @@ void update_profile(const char *match)
         wooting_usb_send_feature(WootDevResetAll, 0, 0, 0, 0);            // Reset (Load RGB)
         wooting_usb_send_feature(RefreshRgbColors, 0, 0, 0, new_profile); // Refresh RGB (Load Effect)
     }
+    return match_found;
 }
