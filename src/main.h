@@ -5,4 +5,4 @@
 #include <wooting-rgb-sdk.h>
 
 int main();
-void update_profile(const char *name);
+int update_profile(const char *name);

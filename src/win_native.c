@@ -16,7 +16,7 @@ void initialize_event_hook()
     );
 }
 
-void cleanup()
+void cleanup(void)
 {
     UnhookWinEvent(event_hook);
 }
@@ -42,13 +42,17 @@ void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idO
     printf("%s, %d, %s, %d\n", title, tid, proc_title, pid);
 #endif
 
-    if (strcmp(old_title, title) || strcmp(old_proc_title, proc_title))
+    if (strcmp((const char*)old_title, (const char*)title) || strcmp((const char*)old_proc_title, (const char*)proc_title))
     {
-        strcpy(old_title, title);
-        strcpy(old_proc_title, proc_title);
+        strcpy((char*)old_title, (const char*)title);
+        strcpy((char*)old_proc_title, (const char*)proc_title);
 
-        update_profile(title);
-        update_profile(proc_title);
+        int match_found = 0;
+
+        match_found = update_profile(title);
+
+        if (match_found == 0)
+            update_profile(proc_title);
     }
 
     free(title);
