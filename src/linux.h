@@ -6,6 +6,7 @@ struct WindowInfo
 {
     char *res_class;
     char *res_name;
+    char *res_title;
 };
 
 struct WindowInfo get_window_info(Display *display);

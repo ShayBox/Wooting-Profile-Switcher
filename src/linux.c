@@ -22,6 +22,20 @@ struct WindowInfo get_window_info(Display *display)
 
     info.res_class = hint.res_class;
     info.res_name = hint.res_name;
+
+    XTextProperty text;
+    status = XGetWMName(display, window, &text);
+    if (status && text.value && text.nitems)
+    {
+        int i;
+        char **list;
+        status = XmbTextPropertyToTextList(display, &text, &list, &i);
+        if (status >= Success && i && *list)
+        {
+            info.res_title = (char *)*list;
+        }
+    }
+
     return info;
 }
 
@@ -40,11 +54,14 @@ void start_listening()
         {
             struct WindowInfo info = get_window_info(display);
 
-            if (!info.res_class || !info.res_name)
-                continue;
+            if (info.res_class)
+                update_profile(info.res_class);
 
-            update_profile(info.res_class);
-            update_profile(info.res_name);
+            if (info.res_name)
+                update_profile(info.res_name);
+
+            if (info.res_title)
+                update_profile(info.res_title);
         }
     }
 }
