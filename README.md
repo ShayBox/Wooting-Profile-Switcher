@@ -12,10 +12,10 @@ A small tool to automatically switch between the profiles of your Wooting keyboa
 - pkg-config
 
 ### Linux:
-- gccw
+- gcc
 - make
 - pkg-config
-- x11
+- libx11
 
 ### Other:
 - [wooting-rgb-sdk]
