@@ -1,9 +1,4 @@
 #include "linux.h"
-#include "main.h"
-#include <stdbool.h>
-#include <string.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
 
 struct WindowInfo get_window_hint(Display *display)
 {
@@ -53,8 +48,7 @@ void start_listening()
             {
                 old_class = hint.class;
                 old_name = hint.name;
-                update_profile(hint.class);
-                update_profile(hint.name);
+                update_profile(hint.name, hint.class);
             }
         }
     }
