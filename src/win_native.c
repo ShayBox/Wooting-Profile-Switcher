@@ -8,11 +8,11 @@ LPSTR old_proc_title[2048];
 void initialize_event_hook()
 {
     event_hook = SetWinEventHook(
-        EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND,  	// Event Range to handle
+        EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, // Event Range to handle
         NULL,
-        event_handler,                                      // callback function
-        0, 0,                                               // process and thread IDs of interest (0 = all)
-        0 	                                                // flags
+        event_handler, // callback function
+        0, 0,          // process and thread IDs of interest (0 = all)
+        0              // flags
     );
 }
 
@@ -21,8 +21,8 @@ void cleanup()
     UnhookWinEvent(event_hook);
 }
 
-void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idObject, LONG idChild, 
-                                DWORD dwEventThread, DWORD dwmsEventTime)
+void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idObject, LONG idChild,
+                            DWORD dwEventThread, DWORD dwmsEventTime)
 {
     LPSTR title = malloc(256);
     LPSTR proc_path = malloc(2048);
@@ -31,10 +31,10 @@ void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idO
     DWORD tid, pid;
     tid = GetWindowThreadProcessId(hwnd, &pid);
 
-    HANDLE hProc = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ , FALSE, pid);    
+    HANDLE hProc = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
     GetModuleFileNameEx(hProc, NULL, proc_path, 2048);
 
-    LPSTR proc_title = last_occurence((char*)proc_path, '\\')+1;
+    LPSTR proc_title = last_occurence((char *)proc_path, '\\') + 1;
 
     CloseHandle(hProc);
 
@@ -61,22 +61,27 @@ void start_listening()
     initialize_event_hook();
 
     MSG msg;
-    while(GetMessage(&msg, NULL, 0, 0) > 0)
+    while (GetMessage(&msg, NULL, 0, 0) > 0)
     {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
 }
 
-char* last_occurence(char* str, char chr)
+char *last_occurence(char *str, char chr)
 {
     int i, index;
-    for(i = strlen(str) - 1; i >= 0 ; i--)
+    for (i = strlen(str) - 1; i >= 0; i--)
     {
-        if(str[i] == chr)
+        if (str[i] == chr)
         {
-            return str+i;
+            return str + i;
         }
     }
     return str;
+}
+
+const char *get_config_path()
+{
+    return "";
 }

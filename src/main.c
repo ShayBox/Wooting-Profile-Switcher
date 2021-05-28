@@ -14,7 +14,7 @@ struct Process
 };
 
 // TODO: Add config file
-const struct Process process_list[] = {
+struct Process process_list[] = {
 #ifdef _WIN32
     {"Isaac", 1},
     {"isaac-ng.exe", 2},
@@ -33,6 +33,8 @@ int main()
         return EXIT_FAILURE;
     }
 
+    // process_list = // TODO: Add config
+
     start_listening();
     wooting_rgb_reset();
     return EXIT_SUCCESS;
@@ -41,7 +43,7 @@ int main()
 int last_profile = -1;
 void update_profile(const char *name, const char *proc_name)
 {
-    puts(name); // Process name for users
+    puts(name);      // Process name for users
     puts(proc_name); // Process name for users
 
     int new_profile = 0; // Default to Digital Profile

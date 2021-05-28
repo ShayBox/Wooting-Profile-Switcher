@@ -10,3 +10,4 @@ struct WindowInfo
 
 struct WindowInfo get_window_hint(Display *display);
 void start_listening();
+const char *get_config_path();
