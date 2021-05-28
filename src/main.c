@@ -9,7 +9,7 @@
 
 struct Process
 {
-    const char *name;
+    const char *match;
     const int profile;
 };
 
@@ -41,17 +41,22 @@ int main()
 }
 
 int last_profile = -1;
-void update_profile(const char *name, const char *proc_name)
+const char *last_match = "";
+void update_profile(const char *match)
 {
-    puts(name);      // Process name for users
-    puts(proc_name); // Process name for users
+    if (strcmp(match, last_match) == 0)
+        return;
+    else
+        last_match = match;
+
+    puts(match);
 
     int new_profile = 0; // Default to Digital Profile
     size_t process_list_size = sizeof(process_list) / sizeof(process_list[0]);
     for (size_t i = 0; i < process_list_size; i++)
     {
         struct Process process = process_list[i];
-        if (strcmp(name, process.name) == 0 || strcmp(proc_name, process.name) == 0)
+        if (strcmp(match, process.match) == 0)
             new_profile = process.profile;
     }
 

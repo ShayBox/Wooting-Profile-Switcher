@@ -4,10 +4,10 @@
 
 struct WindowInfo
 {
-    char *class;
-    char *name;
+    char *res_class;
+    char *res_name;
 };
 
-struct WindowInfo get_window_hint(Display *display);
+struct WindowInfo get_window_info(Display *display);
 void start_listening();
 const char *get_config_path();

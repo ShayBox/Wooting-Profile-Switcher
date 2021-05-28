@@ -47,7 +47,8 @@ void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idO
         strcpy(old_title, title);
         strcpy(old_proc_title, proc_title);
 
-        update_profile(title, proc_title);
+        update_profile(title);
+        update_profile(proc_title);
     }
 
     free(title);
