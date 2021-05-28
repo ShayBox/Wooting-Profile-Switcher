@@ -1,17 +1,24 @@
-
 # WootingProfileSwitcher
 A small tool to automatically switch between the profiles of your Wooting keyboard.
 
-## Requirements:
-### Windows
-[Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019)
-### macOS
-[Xcode](https://apps.apple.com/us/app/xcode/id497799835)
-### Linux
-x11
-gcc
-### Other
-[wooting-rgb-sdk](https://github.com/WootingKb/wooting-rgb-sdk)
+## Requirements
+### Windows:
+- [Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019)
+
+### macOS:
+- [Xcode]
+- gcc
+- make
+- pkg-config
+
+### Linux:
+- gccw
+- make
+- pkg-config
+- x11
+
+### Other:
+- [wooting-rgb-sdk]
 
 ## Building
 ### Windows
@@ -29,16 +36,19 @@ nmake release64
 To build debug builds just replace `release` with `debug` in the commands you run.
 
 ### macOS
-Soon to follow.
+- Install the required [dependencies](#macOS)
+- Open a shell of your choice.
+- Navigate to the `mac` folder inside the repository files.
+- Run `make`.
 
 ### Linux
-- Open a shell of your choice
+- Install the required [dependencies](#Linux)
+- Open a shell of your choice.
 - Navigate to the `linux` folder inside the repository files.
-
-#### Run
-```
-make build
-```
+- Run `make`.
 
 ## License
 This project is licensed under the MIT License. Read the [License](https://github.com/ShayBox/WootingProfileSwitcher/blob/master/LICENSE) for more information.
+
+[wooting-rgb-sdk]:https://github.com/WootingKb/wooting-rgb-sdk
+[Xcode]:https://apps.apple.com/us/app/xcode/id497799835
