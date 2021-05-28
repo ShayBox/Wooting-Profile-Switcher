@@ -52,7 +52,7 @@ void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idO
         match_found = update_profile(title);
 
         if (match_found == 0)
-            match_found = update_profile(proc_title);
+            update_profile(proc_title);
     }
 
     free(title);
