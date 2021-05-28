@@ -47,8 +47,15 @@ void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idO
         strcpy((char*)old_title, (const char*)title);
         strcpy((char*)old_proc_title, (const char*)proc_title);
 
-        update_profile(title);
-        update_profile(proc_title);
+        int match_found = 0;
+
+        match_found = update_profile(title);
+        if (match_found == 1)
+            return;
+        
+        match_found = update_profile(proc_title);
+        if (match_found == 1)
+            return;
     }
 
     free(title);
