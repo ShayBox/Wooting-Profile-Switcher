@@ -16,7 +16,7 @@ void initialize_event_hook()
     );
 }
 
-void cleanup()
+void cleanup(void)
 {
     UnhookWinEvent(event_hook);
 }
