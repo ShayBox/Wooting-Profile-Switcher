@@ -7,6 +7,13 @@
 #endif
 #include "main.h"
 
+// https://gist.github.com/BigBrainAFK/0ba454a1efb43f7cb6301cda8838f432
+const char ReloadProfile0 = 7;
+const char GetCurrentKeyboardProfileIndex = 11;
+const char ActivateProfile = 23;
+const char RefreshRgbColors = 29;
+const char WootDevResetAll = 32;
+
 struct Process
 {
     const char *match;
@@ -25,6 +32,7 @@ struct Process process_list[] = {
 #endif
 };
 
+int last_profile;
 int main()
 {
     if (!wooting_rgb_kbd_connected())
@@ -33,6 +41,9 @@ int main()
         return EXIT_FAILURE;
     }
 
+    last_profile = wooting_usb_send_feature(GetCurrentKeyboardProfileIndex, 0, 0, 0, 0) - 1;
+    wooting_usb_send_feature(WootDevResetAll, 0, 0, 0, 0); // Fix effect freezing
+
     // process_list = // TODO: Add config
 
     start_listening();
@@ -40,7 +51,6 @@ int main()
     return EXIT_SUCCESS;
 }
 
-int last_profile = -1;
 const char *last_match = "";
 int update_profile(const char *match)
 {
@@ -68,12 +78,6 @@ int update_profile(const char *match)
     if (last_profile != new_profile)
     {
         last_profile = new_profile;
-
-        // https://gist.github.com/BigBrainAFK/0ba454a1efb43f7cb6301cda8838f432
-        const char ActivateProfile = 23;
-        const char ReloadProfile0 = 7;
-        const char WootDevResetAll = 32;
-        const char RefreshRgbColors = 29;
         wooting_usb_send_feature(ActivateProfile, 0, 0, 0, new_profile);  // Change profile
         wooting_usb_send_feature(ReloadProfile0, 0, 0, 0, new_profile);   // Change RGB
         wooting_usb_send_feature(WootDevResetAll, 0, 0, 0, 0);            // Reset (Load RGB)

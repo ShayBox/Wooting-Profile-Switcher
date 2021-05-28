@@ -53,14 +53,12 @@ void start_listening()
         if (event.type == PropertyChangeMask || event.type == 22 || event.type == 18)
         {
             struct WindowInfo info = get_window_info(display);
-
+            int match_found = 0;
             if (info.res_class)
-                update_profile(info.res_class);
-
-            if (info.res_name)
-                update_profile(info.res_name);
-
-            if (info.res_title)
+                match_found = update_profile(info.res_class);
+            if (info.res_name && match_found == 0)
+                match_found = update_profile(info.res_name);
+            if (info.res_title && match_found == 0)
                 update_profile(info.res_title);
         }
     }
