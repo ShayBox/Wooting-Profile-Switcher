@@ -11,8 +11,8 @@ DIR_SRC = ..\src
 DIR_INCLUDE = .\include\wooting-rgb-sdk
 DIR_LIB = .\lib\x64
 DIR_LIB_X86 = .\lib\x86
-LIB_DEPENDENCIES = Kernel32.lib ucrt.lib User32.lib wooting-rgb-sdk64.lib
-LIB_DEPENDENCIES_X86 = Kernel32.lib ucrt.lib User32.lib wooting-rgb-sdk.lib
+LIB_DEPENDENCIES = Kernel32.lib ucrt.lib User32.lib libcmt.lib wooting-rgb-sdk64.lib
+LIB_DEPENDENCIES_X86 = Kernel32.lib ucrt.lib User32.lib libcmt.lib wooting-rgb-sdk.lib
 
 # Flexible folder macros
 DIR_BUILD = .\build

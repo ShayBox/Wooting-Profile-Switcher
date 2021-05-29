@@ -84,6 +84,9 @@ WOOTINGRGBSDK_API bool wooting_usb_send_feature(uint8_t commandId, uint8_t param
                               uint8_t parameter1, uint8_t parameter2,
                               uint8_t parameter3);
 
+WOOTINGRGBSDK_API void wooting_usb_read_response_timeout(uint8_t *buff, size_t len, int milliseconds);
+WOOTINGRGBSDK_API void wooting_usb_read_response(uint8_t *buff, size_t len);
+
 #ifdef __cplusplus
 }
 #endif
