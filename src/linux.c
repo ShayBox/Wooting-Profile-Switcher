@@ -39,6 +39,7 @@ struct WindowInfo get_window_info(Display *display)
     return info;
 }
 
+struct WindowInfo last_info;
 void start_listening()
 {
     Display *display = XOpenDisplay(NULL);
@@ -55,11 +56,16 @@ void start_listening()
             struct WindowInfo info = get_window_info(display);
             int match_found = 0;
             if (info.res_class)
-                match_found = update_profile(info.res_class);
+                if (last_info.res_class && strcmp(last_info.res_class, info.res_class))
+                    match_found = update_profile(info.res_class);
             if (info.res_name && match_found == 0)
-                match_found = update_profile(info.res_name);
+                if (last_info.res_name && strcmp(last_info.res_name, info.res_name))
+                    match_found = update_profile(info.res_name);
             if (info.res_title && match_found == 0)
-                update_profile(info.res_title);
+                if (last_info.res_title && strcmp(last_info.res_title, info.res_title))
+                    update_profile(info.res_title);
+
+            last_info = info;
         }
     }
 }

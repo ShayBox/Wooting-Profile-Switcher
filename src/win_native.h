@@ -1,7 +1,7 @@
 #include "main.h"
+#include <psapi.h>
 #include <windows.h>
 #include <winuser.h>
-#include <psapi.h>
 
 void cleanup(void);
 void start_listening();

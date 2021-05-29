@@ -42,10 +42,10 @@ void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idO
     printf("%s, %d, %s, %d\n", title, tid, proc_title, pid);
 #endif
 
-    if (strcmp((const char*)old_title, (const char*)title) || strcmp((const char*)old_proc_title, (const char*)proc_title))
+    if (strcmp((const char *)old_title, (const char *)title) || strcmp((const char *)old_proc_title, (const char *)proc_title))
     {
-        strcpy((char*)old_title, (const char*)title);
-        strcpy((char*)old_proc_title, (const char*)proc_title);
+        strcpy((char *)old_title, (const char *)title);
+        strcpy((char *)old_proc_title, (const char *)proc_title);
 
         int match_found = 0;
 

@@ -78,10 +78,14 @@ int update_profile(const char *match)
     if (last_profile != new_profile)
     {
         last_profile = new_profile;
+
+        sleep(.1); // Fix keyboard spamming keypresses like Alt-Tab or Win when switching profiles
+
         wooting_usb_send_feature(ActivateProfile, 0, 0, 0, new_profile);  // Change profile
         wooting_usb_send_feature(ReloadProfile0, 0, 0, 0, new_profile);   // Change RGB
         wooting_usb_send_feature(WootDevResetAll, 0, 0, 0, 0);            // Reset (Load RGB)
         wooting_usb_send_feature(RefreshRgbColors, 0, 0, 0, new_profile); // Refresh RGB (Load Effect)
     }
+
     return match_found;
 }
