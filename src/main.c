@@ -32,7 +32,6 @@ struct Process process_list[] = {
 #endif
 };
 
-int last_profile;
 int main()
 {
     if (!wooting_rgb_kbd_connected())
@@ -41,9 +40,6 @@ int main()
         return EXIT_FAILURE;
     }
 
-    last_profile = wooting_usb_send_feature(GetCurrentKeyboardProfileIndex, 0, 0, 0, 0) - 1;
-    wooting_usb_send_feature(WootDevResetAll, 0, 0, 0, 0); // Fix effect freezing
-
     // process_list = // TODO: Add config
 
     start_listening();
@@ -51,6 +47,7 @@ int main()
     return EXIT_SUCCESS;
 }
 
+int last_profile = -1;
 const char *last_match = "";
 int update_profile(const char *match)
 {

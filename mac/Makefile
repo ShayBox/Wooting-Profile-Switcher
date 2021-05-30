@@ -1,6 +1,10 @@
 CC?=gcc
-CFLAGS?=-Os -s
-LIBS?=-lwooting-rgb-sdk
+CFLAGS?=-Wall -pedantic -Os -s
+LIBS?=-lX11 -lwooting-rgb-sdk
 
-build: ../src/main.c ../src/mac.c
+release: ../src/main.c ../src/mac.c
+	$(CC) $(CFLAGS) $(LIBS) ../src/main.c ../src/mac.c -o WootingProfileSwitcher
+
+debug: ../src/main.c ../src/mac.c
+	CFLAGS+=-g3
 	$(CC) $(CFLAGS) $(LIBS) ../src/main.c ../src/mac.c -o WootingProfileSwitcher
