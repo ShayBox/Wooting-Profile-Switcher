@@ -77,22 +77,22 @@ int update_profile(const char *match)
         last_profile = new_profile;
 
         wooting_usb_send_feature(ActivateProfile, 0, 0, 0, new_profile);  // Change profile
-        std_sleep(.02);
+        std_sleep(1);
         wooting_usb_send_feature(ReloadProfile0, 0, 0, 0, new_profile);   // Change RGB
-        std_sleep(.02);
+        std_sleep(1);
         wooting_usb_send_feature(WootDevResetAll, 0, 0, 0, 0);            // Reset (Load RGB)
-        std_sleep(.02);
+        std_sleep(1);
         wooting_usb_send_feature(RefreshRgbColors, 0, 0, 0, new_profile); // Refresh RGB (Load Effect)
     }
 
     return match_found;
 }
 
-void std_sleep(int milliseconds)
+void std_sleep(int seconds)
 {
 #ifdef _WIN32
-        Sleep(milliseconds); // Fix keyboard spamming keypresses like Alt-Tab or Win when switching profiles
+        Sleep(seconds * 1000); // Fix keyboard spamming keypresses like Alt-Tab or Win when switching profiles
 #else
-        sleep(milliseconds);
+        sleep(seconds);
 #endif
 }
