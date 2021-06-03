@@ -74,3 +74,9 @@ const char *get_config_path()
 {
     return "";
 }
+
+void cleanup(void)
+{
+    wooting_rgb_reset();
+    exit(EXIT_SUCCESS);
+}

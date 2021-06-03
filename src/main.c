@@ -40,11 +40,31 @@ int main()
         return EXIT_FAILURE;
     }
 
+    uint8_t buff[256] = {0};
+
+#ifdef _DEBUG
+    printf("%d\n", buff[0]);
+#endif
+
+    int read_result = wooting_usb_send_feature_with_response(buff, 256, GetCurrentKeyboardProfileIndex, 0, 0, 0, 0);
+
+#ifdef _DEBUG
+    printf("Bytes read: %d\n", read_result);
+
+    printf("Buffer \n");
+    for(int i = 0; i < 256; i++ )
+    {
+        printf("%d%s", buff[i], i < 255 ? ", " : "");
+    }
+    printf("\n");
+#endif
+
     // process_list = // TODO: Add config
 
+    // Exit handler so the platforms can clean up their hooks if necessary
+    register_cleanup();
+
     start_listening();
-    wooting_rgb_reset();
-    return EXIT_SUCCESS;
 }
 
 int last_profile = -1;
@@ -95,4 +115,11 @@ void std_sleep(int seconds)
 #else
         sleep(seconds);
 #endif
+}
+
+void register_cleanup()
+{
+    atexit(cleanup);
+    signal(SIGTERM, cleanup);
+    signal(SIGINT, cleanup);
 }

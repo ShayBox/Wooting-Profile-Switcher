@@ -4,9 +4,8 @@
 #include <psapi.h>
 #include <synchapi.h>
 
-void cleanup(void);
-void start_listening();
 void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idObject, LONG idChild,
                             DWORD dwEventThread, DWORD dwmsEventTime);
-char *last_occurence(char *str, char chr);
+void start_listening();
 const char *get_config_path();
+void cleanup(void);
