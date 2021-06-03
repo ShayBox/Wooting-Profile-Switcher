@@ -83,9 +83,12 @@ WOOTINGRGBSDK_API bool wooting_usb_send_buffer_v2(uint16_t rgb_buffer[WOOTING_RG
 WOOTINGRGBSDK_API bool wooting_usb_send_feature(uint8_t commandId, uint8_t parameter0,
                               uint8_t parameter1, uint8_t parameter2,
                               uint8_t parameter3);
+WOOTINGRGBSDK_API int wooting_usb_send_feature_with_response(uint8_t *buff, size_t len, uint8_t commandId,
+                              uint8_t parameter0, uint8_t parameter1,
+                              uint8_t parameter2, uint8_t parameter3);
 
-WOOTINGRGBSDK_API void wooting_usb_read_response_timeout(uint8_t *buff, size_t len, int milliseconds);
-WOOTINGRGBSDK_API void wooting_usb_read_response(uint8_t *buff, size_t len);
+WOOTINGRGBSDK_API int wooting_usb_read_response_timeout(uint8_t *buff, size_t len, int milliseconds);
+WOOTINGRGBSDK_API int wooting_usb_read_response(uint8_t *buff, size_t len);
 
 #ifdef __cplusplus
 }
