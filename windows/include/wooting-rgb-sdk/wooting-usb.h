@@ -25,6 +25,7 @@ extern "C" {
 #ifdef DEBUG_LOG
 #include <stdio.h>
 #endif
+#include <stddef.h>
 
 typedef void (*void_cb)(void);
 
@@ -77,6 +78,7 @@ WOOTINGRGBSDK_API bool wooting_usb_find_keyboard(void);
 
 WOOTINGRGBSDK_API WOOTING_USB_META *wooting_usb_get_meta(void);
 WOOTINGRGBSDK_API bool wooting_usb_use_v2_interface(void);
+WOOTINGRGBSDK_API size_t wooting_usb_get_response_size(void);
 
 WOOTINGRGBSDK_API bool wooting_usb_send_buffer_v1(RGB_PARTS part_number, uint8_t rgb_buffer[]);
 WOOTINGRGBSDK_API bool wooting_usb_send_buffer_v2(uint16_t rgb_buffer[WOOTING_RGB_ROWS][WOOTING_RGB_COLS]);

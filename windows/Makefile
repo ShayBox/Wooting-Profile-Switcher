@@ -11,7 +11,6 @@ DIR_SRC = ..\src
 DIR_INCLUDE = .\include\wooting-rgb-sdk
 DIR_LIB = .\lib\x64
 DIR_LIB_X86 = .\lib\x86
-# libucrt.lib libvcruntime.lib libcmt.lib Kernel32.lib User32.lib
 COMMON_DEPENDENCIES = ucrt.lib vcruntime.lib msvcrt.lib Kernel32.lib User32.lib
 LIB_DEPENDENCIES = $(COMMON_DEPENDENCIES) wooting-rgb-sdk64.lib
 LIB_DEPENDENCIES_X86 = $(COMMON_DEPENDENCIES) wooting-rgb-sdk.lib
@@ -35,7 +34,7 @@ DIR_INTERMEDIATE_DBG_X86 = $(DIR_INTERMEDIATE_DBG_BASE)\x86
 
 # Linker arguments
 LINK_LEAN = /D "WIN32_LEAN_AND_MEAN" /D "VC_EXTRALEAN"
-LINK_ARGS =  /NOLOGO /NODEFAULTLIB /SUBSYSTEM:CONSOLE %LINK_DBG%
+LINK_ARGS = /NOLOGO /NODEFAULTLIB /SUBSYSTEM:CONSOLE %LINK_DBG%
 
 # Linker macro for use in compiler macros
 LINK_X86 = /link /MACHINE:X86 $(LINK_ARGS) /LIBPATH:$(DIR_LIB_X86) $(LIB_DEPENDENCIES_X86)
