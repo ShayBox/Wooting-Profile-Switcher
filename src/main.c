@@ -32,6 +32,7 @@ struct Process process_list[] = {
 #endif
 };
 
+int last_profile = -1;
 int main()
 {
     if (!wooting_rgb_kbd_connected())
@@ -40,11 +41,7 @@ int main()
         return EXIT_FAILURE;
     }
 
-    uint8_t buff[256] = {0};
-
-#ifdef _DEBUG
-    printf("%d\n", buff[0]);
-#endif
+    uint8_t* buff = (uint8_t*) calloc(256, sizeof(uint8_t));
 
     int read_result = wooting_usb_send_feature_with_response(buff, 256, GetCurrentKeyboardProfileIndex, 0, 0, 0, 0);
 
@@ -59,6 +56,13 @@ int main()
     printf("\n");
 #endif
 
+    if (buff[4] == 1)
+    {
+        last_profile = buff[5];
+        printf("Current Profile is %s%c\n", last_profile == 0 ? "Digital" : "Analog", last_profile > 0 ? (char)last_profile+'0' : ' ');
+    }
+
+    free(buff);
     // process_list = // TODO: Add config
 
     // Exit handler so the platforms can clean up their hooks if necessary
@@ -67,7 +71,6 @@ int main()
     start_listening();
 }
 
-int last_profile = -1;
 const char *last_match = "";
 int update_profile(const char *match)
 {
