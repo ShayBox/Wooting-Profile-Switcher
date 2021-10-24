@@ -69,15 +69,15 @@ void start_listening()
     }
 }
 
-const char *get_config_path()
+char *get_config_path()
 {
-    return "";
+    return "./config.json";
 }
 
 void cleanup(void)
 {
     terminating = true;
-    UnhookWindowsHookEx(event_hook);
+    UnhookWinEvent(event_hook);
     wooting_rgb_reset();
     exit(EXIT_SUCCESS);
 }

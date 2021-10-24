@@ -8,7 +8,7 @@ BIN64 = %VCToolsInstallDir%bin\Hostx64\x64
 AUX_DIR = %VCToolsInstallDir%..\..\..\Auxiliary\Build
 
 DIR_SRC = ..\src
-DIR_INCLUDE = .\include\wooting-rgb-sdk
+DIR_INCLUDE = /I.\include\wooting-rgb-sdk /I..\cJSON
 DIR_LIB = .\lib\x64
 DIR_LIB_X86 = .\lib\x86
 COMMON_DEPENDENCIES = ucrt.lib vcruntime.lib msvcrt.lib Kernel32.lib User32.lib
@@ -40,7 +40,7 @@ LINK_ARGS = /NOLOGO /NODEFAULTLIB /SUBSYSTEM:CONSOLE %LINK_DBG%
 LINK_X86 = /link /MACHINE:X86 $(LINK_ARGS) /LIBPATH:$(DIR_LIB_X86) $(LIB_DEPENDENCIES_X86)
 LINK_X64 = /link /MACHINE:X64 $(LINK_ARGS) /LIBPATH:$(DIR_LIB) $(LIB_DEPENDENCIES)
 
-COMP_GENERAL = $(DEBUG) /O2 /utf-8 /EHsc $(LINK_LEAN) /I$(DIR_INCLUDE) $(SRC_FILES)
+COMP_GENERAL = $(DEBUG) /O2 /utf-8 /EHsc $(LINK_LEAN) $(DIR_INCLUDE) $(SRC_FILES)
 
 #DEBUG macro
 DEBUG = %DEBUG_FLAG%
@@ -52,20 +52,27 @@ COMPILER_X64 = "$(BIN64)\cl.exe" /Fe%DIR_COMP%\$(EXECUTABLE_NAME) $(COMP_GENERAL
 # Macro for all used source files
 SRC_FILES= \
   $(DIR_SRC)\main.c \
-  $(DIR_SRC)\win_native.c
+  $(DIR_SRC)\win_native.c \
+  $(DIR_SRC)\..\cJSON\cJSON.c
 
 # description block
 $(EXECUTABLE_NAME_X86): $(SRC_FILES)
   $(COMPILER_X86)
   @copy *.obj "%DIR_INTERMEDIATE_COMP_X86%""
   @del *.obj
+  @del "%DIR_COMP_X86%\*.lib"
+  @del "%DIR_COMP_X86%\*.exp"
   @copy $(DIR_LIB_X86)\wooting-rgb-sdk.dll "%DIR_COMP_X86%"
+  @copy $(DIR_SRC)\..\example_config.json "%DIR_COMP_X86%\config.json"
 
 $(EXECUTABLE_NAME): $(SRC_FILES)
   $(COMPILER_X64)
   @copy *.obj "%DIR_INTERMEDIATE_COMP%"
   @del *.obj
+  @del "%DIR_COMP%\*.lib"
+  @del "%DIR_COMP%\*.exp"
   @copy $(DIR_LIB)\wooting-rgb-sdk64.dll "%DIR_COMP%"
+  @copy $(DIR_SRC)\..\example_config.json "%DIR_COMP%\config.json"
 
 # build application
 wooting_profile_switcher_debug: set_debug wooting_profile_switcher
