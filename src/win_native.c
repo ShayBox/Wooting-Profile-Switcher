@@ -1,6 +1,7 @@
 #include "win_native.h"
 
 HWINEVENTHOOK event_hook;
+bool terminating = false;
 
 LPSTR old_title[256];
 LPSTR old_proc_title[2048];
@@ -16,14 +17,10 @@ void initialize_event_hook()
     );
 }
 
-void cleanup(void)
-{
-    UnhookWinEvent(event_hook);
-}
-
 void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idObject, LONG idChild,
                             DWORD dwEventThread, DWORD dwmsEventTime)
 {
+    if (terminating) return;
     LPSTR title = malloc(256);
     LPSTR proc_path = malloc(2048);
     GetWindowText(hwnd, title, 256);
@@ -34,7 +31,7 @@ void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idO
     HANDLE hProc = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
     GetModuleFileNameEx(hProc, NULL, proc_path, 2048);
 
-    LPSTR proc_title = last_occurence((char *)proc_path, '\\') + 1;
+    LPSTR proc_title = strrchr((char *)proc_path, '\\') + 1;
 
     CloseHandle(hProc);
 
@@ -57,7 +54,6 @@ void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idO
 
     free(title);
     free(proc_path);
-    free(&pid);
 }
 
 void start_listening()
@@ -73,20 +69,15 @@ void start_listening()
     }
 }
 
-char *last_occurence(char *str, char chr)
+char *get_config_path()
 {
-    int i, index;
-    for (i = strlen(str) - 1; i >= 0; i--)
-    {
-        if (str[i] == chr)
-        {
-            return str + i;
-        }
-    }
-    return str;
+    return "./config.json";
 }
 
-const char *get_config_path()
+void cleanup(void)
 {
-    return "";
+    terminating = true;
+    UnhookWinEvent(event_hook);
+    wooting_rgb_reset();
+    exit(EXIT_SUCCESS);
 }

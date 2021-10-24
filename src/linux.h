@@ -13,3 +13,4 @@ struct WindowInfo
 struct WindowInfo get_window_info(Display *display);
 void start_listening();
 const char *get_config_path();
+void cleanup(void);
