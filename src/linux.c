@@ -72,7 +72,19 @@ void start_listening()
 
 const char *get_config_path()
 {
-    return "";
+    const char *xdg_config_home = getenv("XDG_CONFIG_HOME");
+    if (xdg_config_home)
+    {
+        return strcat(xdg_config_home, "/WootingProfileSwitcher/config.json");
+    }
+
+    const char *home = getenv("HOME");
+    if (home)
+    {
+        return strcat(home, "/.config/WootingProfileSwitcher/config.json");
+    }
+
+    return "./config.json";
 }
 
 void cleanup(void)

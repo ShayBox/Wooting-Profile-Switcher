@@ -1,7 +1,5 @@
 #ifdef _WIN32
 #include "win_native.h"
-#elif __APPLE__
-#include "mac.h"
 #elif __linux__
 #include "linux.h"
 #endif
@@ -22,17 +20,6 @@ typedef struct proc_struct
 
 Process *process_list;
 int process_list_length;
-
-/*
-#ifdef _WIN32
-    {"Isaac", 1},
-    {"isaac-ng.exe", 2},
-#elif __APPLE__
-    {"", 0},
-#elif __linux__
-    {"steam_app_250900", 1}, // Binding of Isaac
-#endif
-*/
 
 int last_profile = -1;
 int main()
