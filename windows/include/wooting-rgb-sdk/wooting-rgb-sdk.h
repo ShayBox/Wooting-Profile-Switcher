@@ -180,6 +180,17 @@ This functions returns a pointer to a `WOOTING_USB_META` struct which contains r
 */
 WOOTINGRGBSDK_API const WOOTING_USB_META* wooting_rgb_device_info(void);
 
+/** @brief Retrieve layout of the connected device
+
+This function returns an enum flag indicating the layout, e.g. ISO. See WOOTING_DEVICE_LAYOUT for options. It will return LAYOUT_UNKNOWN if no device is connected or it failed to get the layout info from the device
+
+@ingroup API
+
+@returns
+WOOTING_DEVICE_LAYOUT
+*/
+WOOTINGRGBSDK_API WOOTING_DEVICE_LAYOUT wooting_rgb_device_layout(void);
+
 #ifdef __cplusplus
 }
 #endif
