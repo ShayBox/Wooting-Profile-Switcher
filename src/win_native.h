@@ -8,4 +8,4 @@ void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idO
                             DWORD dwEventThread, DWORD dwmsEventTime);
 void start_listening();
 char *get_config_path();
-void cleanup(void);
+void cleanup(int receivedSignal);

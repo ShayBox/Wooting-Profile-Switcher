@@ -74,7 +74,7 @@ char *get_config_path()
     return "./config.json";
 }
 
-void cleanup(void)
+void cleanup(int receivedSignal)
 {
     terminating = true;
     UnhookWinEvent(event_hook);
