@@ -1,14 +1,24 @@
 #include "win_native.h"
 
-HWINEVENTHOOK event_hook;
+HWINEVENTHOOK focus_event;
 bool terminating = false;
 
 LPSTR old_title[256];
 LPSTR old_proc_title[2048];
 
+bool ctrl_handler(unsigned long event)
+{
+    if (event == CTRL_CLOSE_EVENT) {
+        terminating = true;
+        cleanup(0);
+        return true;
+    }
+    return false;
+}
+
 void initialize_event_hook()
 {
-    event_hook = SetWinEventHook(
+    focus_event = SetWinEventHook(
         EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, // Event Range to handle
         NULL,
         event_handler, // callback function
@@ -59,6 +69,7 @@ void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idO
 void start_listening()
 {
     SetConsoleTitle(TEXT("Wooting Profile Switcher"));
+    SetConsoleCtrlHandler((PHANDLER_ROUTINE)(ctrl_handler), true);
     initialize_event_hook();
 
     MSG msg;
@@ -77,7 +88,20 @@ char *get_config_path()
 void cleanup(int receivedSignal)
 {
     terminating = true;
-    UnhookWinEvent(event_hook);
+    UnhookWinEvent(focus_event);
+    reset_profile();
     wooting_rgb_reset();
-    exit(EXIT_SUCCESS);
+}
+
+void usleep(unsigned int usec)
+{
+	HANDLE timer;
+	LARGE_INTEGER ft;
+
+	ft.QuadPart = -(10 * (__int64)usec);
+
+	timer = CreateWaitableTimer(NULL, TRUE, NULL);
+	SetWaitableTimer(timer, &ft, 0, NULL, NULL, 0);
+	WaitForSingleObject(timer, INFINITE);
+	CloseHandle(timer);
 }

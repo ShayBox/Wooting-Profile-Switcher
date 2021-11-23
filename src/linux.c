@@ -89,6 +89,7 @@ const char *get_config_path()
 
 void cleanup(void)
 {
+    reset_profile();
     wooting_rgb_reset();
     exit(EXIT_SUCCESS);
 }

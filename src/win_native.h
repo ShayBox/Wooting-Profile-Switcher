@@ -9,3 +9,4 @@ void CALLBACK event_handler(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG idO
 void start_listening();
 char *get_config_path();
 void cleanup(int receivedSignal);
+void usleep(unsigned int usec);

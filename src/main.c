@@ -22,6 +22,7 @@ Process *process_list;
 int process_list_length;
 
 int last_profile = -1;
+int initial_profile = -1;
 int main()
 {
     if (!wooting_rgb_kbd_connected())
@@ -47,11 +48,13 @@ int main()
 
     if (buff[4] == 1)
     {
-        last_profile = buff[5];
+        memcpy(&last_profile, &buff[5], sizeof(last_profile));
         printf("Current Profile is %s%c\n", last_profile == 0 ? "Digital" : "Analog", last_profile > 0 ? (char)last_profile+'0' : ' ');
     }
 
     free(buff);
+
+    memcpy(&initial_profile, &last_profile, sizeof(last_profile));
 
     load_config();
 
@@ -59,6 +62,11 @@ int main()
     register_cleanup();
 
     start_listening();
+}
+
+void reset_profile()
+{
+    set_profile(initial_profile);
 }
 
 const char *last_match = "";
@@ -90,26 +98,21 @@ int update_profile(const char *match)
     if (last_profile != new_profile)
     {
         last_profile = new_profile;
-
-        wooting_usb_send_feature(ActivateProfile, 0, 0, 0, new_profile);  // Change profile
-        std_sleep(1);
-        wooting_usb_send_feature(ReloadProfile0, 0, 0, 0, new_profile);   // Change RGB
-        std_sleep(1);
-        wooting_usb_send_feature(WootDevResetAll, 0, 0, 0, 0);            // Reset (Load RGB)
-        std_sleep(1);
-        wooting_usb_send_feature(RefreshRgbColors, 0, 0, 0, new_profile); // Refresh RGB (Load Effect)
+        set_profile(new_profile);
     }
 
     return match_found;
 }
 
-void std_sleep(int seconds)
+void set_profile(int profileIndex)
 {
-#ifdef _WIN32
-        Sleep(seconds * 1000); // Fix keyboard spamming keypresses like Alt-Tab or Win when switching profiles
-#else
-        sleep(seconds);
-#endif
+    wooting_usb_send_feature(ActivateProfile, 0, 0, 0, profileIndex);  // Change profile
+    usleep(10000);
+    wooting_usb_send_feature(ReloadProfile0, 0, 0, 0, profileIndex);   // Change RGB
+    usleep(10000);
+    wooting_usb_send_feature(WootDevResetAll, 0, 0, 0, 0);            // Reset (Load RGB)
+    usleep(10000);
+    wooting_usb_send_feature(RefreshRgbColors, 0, 0, 0, profileIndex); // Refresh RGB (Load Effect)
 }
 
 void register_cleanup()
@@ -119,11 +122,13 @@ void register_cleanup()
     signal(SIGINT, cleanup);
 }
 
-char* readFile(char* filename) {
+char* read_file(char* filename) {
     FILE *f = fopen(filename, "rt");
     if (f == NULL)
     {
         fprintf(stderr, "Error while reading config file: %s\n", filename);
+        fprintf(stderr, "Press any key to exit");
+        getchar();
         exit(EXIT_FAILURE);
     }
     fseek(f, 0, SEEK_END);
@@ -141,7 +146,7 @@ void load_config()
     // TODO: Get config path per OS if necessary
     char *path = get_config_path();
 
-    char *content = readFile(path);
+    char *content = read_file(path);
     cJSON *json = cJSON_Parse(content);
 
     if (json == NULL)
@@ -155,6 +160,8 @@ void load_config()
         {
             fprintf(stderr, "General error while trying to parse JSON file: $s\n", path);
         }
+        fprintf(stderr, "Press any key to exit");
+        getchar();
         exit(EXIT_FAILURE);
     }
 

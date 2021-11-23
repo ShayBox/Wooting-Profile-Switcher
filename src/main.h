@@ -7,8 +7,9 @@
 #include <cJSON.h>
 
 int main(void);
+void reset_profile(void);
 int update_profile(const char *name);
-void std_sleep(int milliseconds);
+void set_profile(int profileIndex);
 void register_cleanup(void);
 void load_config(void);
-char* readFile(char* filename);
+char* read_file(char* filename);
