@@ -13,8 +13,11 @@ A small tool to automatically switch between the profiles of your Wooting keyboa
 ## Building
 
 ### Windows
-- Download [Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019)
-- Open the `x64 Native Tools Command Prompt for VS 2019` or `x86 Native Tools Command Prompt for VS 2019` prompt depending on what architecture you plan to build.
+- Download and install [Git](https://git-scm.com/download/win).
+- Download and install either [Visual Studio Build Tools 2019](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019).
+- Open the `x64 Native Tools Command Prompt for VS 20XX` or `x86 Native Tools Command Prompt for VS 20XX` prompt depending on what architecture you plan to build.
+- Clone the repository.
+- - `git clone --recurse-submodules https://github.com/ShayBox/WootingProfileSwitcher.git`
 - Navigate to the `windows` folder inside the repository files.
 #### 32-Bit
 ```
