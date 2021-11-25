@@ -1,4 +1,8 @@
 .vscode/
+cJSON/
+wooting-rgb-sdk/
+
+.DS_STORE
 
 windows/build
 windows/*.obj
@@ -6,3 +10,4 @@ windows/*.obj
 windows/WootingProfileSwitcher.exe
 linux/WootingProfileSwitcher
 mac/WootingProfileSwitcher
+*/config.json

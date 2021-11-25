@@ -2,6 +2,8 @@
 #include "win_native.h"
 #elif __linux__
 #include "linux.h"
+#elif __APPLE__
+#include "macos.h"
 #endif
 #include "main.h"
 
@@ -77,7 +79,13 @@ int update_profile(const char *match)
     if (strcmp(match, last_match) == 0)
         return match_found;
     else
-        last_match = match;
+    {
+        if (strlen(last_match)+1 > 1)
+            free(last_match);
+
+        last_match = malloc(strlen(match)+1);
+        memcpy(last_match, match, strlen(match)+1);
+    }
 
     puts(match);
 
