@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
@@ -15,3 +16,5 @@ void load_config(void);
 char* read_file(const char* filename);
 char* write_file(const char* filename, char* content);
 char* create_default_json_string();
+void write_log(const char* format, ...);
+void write_error_log(const char* format, ...);

@@ -27,9 +27,14 @@ int last_profile = -1;
 int initial_profile = -1;
 int main()
 {
+#ifdef __APPLE__
+    int result = init_window();
+    if (result != 1) return EXIT_FAILURE;
+#endif
+
     if (!wooting_rgb_kbd_connected())
     {
-        puts("Keyboard not connected.");
+        write_log("Keyboard not connected.");
         return EXIT_FAILURE;
     }
 
@@ -38,20 +43,20 @@ int main()
     int read_result = wooting_usb_send_feature_with_response(buff, 256, GetCurrentKeyboardProfileIndex, 0, 0, 0, 0);
 
 #ifdef _DEBUG
-    printf("Bytes read: %d\n", read_result);
+    write_log("Bytes read: %d\n", read_result);
 
-    printf("Buffer \n");
+    write_log("Buffer \n");
     for(int i = 0; i < 256; i++ )
     {
-        printf("%d%s", buff[i], i < 255 ? ", " : "");
+        write_log("%d%s", buff[i], i < 255 ? ", " : "");
     }
-    printf("\n");
+    write_log("\n");
 #endif
 
     if (buff[4] == 1)
     {
         memcpy(&last_profile, &buff[5], sizeof(last_profile));
-        printf("Current Profile is %s%c\n", last_profile == 0 ? "Digital" : "Analog", last_profile > 0 ? (char)last_profile+'0' : ' ');
+        write_log("Current Profile is %s%c\n", last_profile == 0 ? "Digital" : "Analog", last_profile > 0 ? (char)last_profile+'0' : ' ');
     }
 
     free(buff);
@@ -87,14 +92,14 @@ int update_profile(const char *match)
         strcpy((char*)last_match, match);
     }
 
-    puts(match);
+    write_log(match);
 
     int new_profile = 0; // Default to Digital Profile
     for (size_t i = 0; i < process_list_length; i++)
     {
         Process process = process_list[i];
 #ifdef _DEBUG
-        printf("Proc_match_name: %s\n", process.match);
+        write_log("Proc_match_name: %s\n", process.match);
 #endif
         if (strcmp(match, process.match) == 0)
         {
@@ -134,8 +139,8 @@ char* read_file(const char* filename) {
     FILE *f = fopen(filename, "rt");
     if (f == NULL)
     {
-        fprintf(stderr, "Error while reading config file: %s\n", filename);
-        fprintf(stderr, "Press any key to exit");
+        write_error_log("Error while reading config file: %s\n", filename);
+        write_error_log("Press any key to exit");
         getchar();
         exit(EXIT_FAILURE);
     }
@@ -155,11 +160,11 @@ char* write_file(const char* filename, char* content)
 
     if(f == NULL)
     {
-        fprintf(stderr, "Error while writing config file: %s\n", filename);
-        fprintf(stderr, "Press any key to exit");
+        write_error_log("Error while writing config file: %s\n", filename);
+        write_error_log("Press any key to exit");
         exit(EXIT_FAILURE);           
     }
-    fprintf(f, "%s", content);
+    write_error_log(f, "%s", content);
     fclose(f);
     return content;
 }
@@ -175,13 +180,13 @@ void load_config()
     }
     else
     {
-        fprintf(stderr, "[WARNING] config not found. creating config in '%s'\n", path);
+        write_error_log("[WARNING] config not found. creating config in '%s'\n", path);
         content = write_file(path, create_default_json_string());
     }
 
     if (content == NULL)
     {
-        fprintf(stderr, "No content was read/written\n");
+        write_error_log("No content was read/written\n");
         exit(EXIT_FAILURE);
     }
 
@@ -192,13 +197,13 @@ void load_config()
         const char *error_ptr = cJSON_GetErrorPtr();
         if (error_ptr != NULL)
         {
-            fprintf(stderr, "Error while parsing the JSON file right before: %s\n", error_ptr);
+            write_error_log("Error while parsing the JSON file right before: %s\n", error_ptr);
         }
         else
         {
-            fprintf(stderr, "General error while trying to parse JSON file: %s\n", path);
+            write_error_log("General error while trying to parse JSON file: %s\n", path);
         }
-        fprintf(stderr, "Press any key to exit");
+        write_error_log("Press any key to exit");
         getchar();
         exit(EXIT_FAILURE);
     }
@@ -221,19 +226,19 @@ void load_config()
 
         if (cJSON_IsInvalid(proc_name))
         {
-            printf("Found entry without \"process_name\" field specified.\nSkipping...\n");
+            write_log("Found entry without \"process_name\" field specified.\nSkipping...\n");
             continue;
         }
 
         if (!cJSON_IsString(proc_name))
         {
-            printf("Invalid entry found: \"process_name\" field has to be a string!\nSkipping...\n");
+            write_log("Invalid entry found: \"process_name\" field has to be a string!\nSkipping...\n");
             continue;
         }
 
         if (cJSON_IsInvalid(profile_index))
         {
-            printf("Found entry without \"profile_index\" field specified (%s).\nSkipping...\n",
+            write_log("Found entry without \"profile_index\" field specified (%s).\nSkipping...\n",
                 proc_name->valuestring
             );
             continue;
@@ -241,7 +246,7 @@ void load_config()
 
         if (!cJSON_IsNumber(profile_index))
         {
-            printf("Invalid entry found: \"profile_index\" field has to be a number (%s)!\nSkipping...\n",
+            write_log("Invalid entry found: \"profile_index\" field has to be a number (%s)!\nSkipping...\n",
                 proc_name->valuestring
             );
             continue;
@@ -249,7 +254,7 @@ void load_config()
 
         if (profile_index->valueint != (int)profile_index->valueint)
         {
-            printf("Entry for \"%s\" has a non integer index (%d)\nSkipping..\n",
+            write_log("Entry for \"%s\" has a non integer index (%d)\nSkipping..\n",
                 proc_name->valuestring,
                 profile_index->valueint
             );
@@ -258,7 +263,7 @@ void load_config()
 
         if (profile_index->valueint > 3 || profile_index->valueint < 0)
         {
-            printf("Entry for \"%s\" has an index out of the range 0 to 3 (%d)\nSkipping..\n",
+            write_log("Entry for \"%s\" has an index out of the range 0 to 3 (%d)\nSkipping..\n",
                 proc_name->valuestring,
                 profile_index->valueint
             );
@@ -333,10 +338,36 @@ char* create_default_json_string(void)
     string = cJSON_Print(profile_config);
     if (string == NULL)
     {
-        fprintf(stderr, "Failed to print monitor.\n");
+        write_error_log("Failed to print monitor.\n");
     }
 
 end:
     cJSON_Delete(profile_config);
     return string;
+}
+
+void write_log(const char* format, ...) {
+    va_list args;
+    va_start( args, format );
+#ifdef __APPLE__
+    char str[1024];
+    vsprintf(str, format, args);
+    puts(str);
+    append_text_to_view(str);
+#endif
+    fprintf( stdout, format, args );
+    va_end( args );
+}
+
+void write_error_log(const char* format, ...)
+{
+    va_list args;
+    va_start( args, format );
+#ifdef __APPLE__
+    char str[1024];
+    vsprintf(str, format, args);
+    append_error_to_view(str);
+#endif
+    fprintf( stderr, format, args );
+    va_end( args );
 }

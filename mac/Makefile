@@ -1,5 +1,5 @@
 CC ?= gcc
-CFLAGS ?= -ObjC -Wall -pedantic -Os
+CFLAGS ?= -ObjC -Wall -Os
 
 SRCS = ../wooting-rgb-sdk/src/wooting-rgb-sdk.c ../wooting-rgb-sdk/src/wooting-usb.c ../cJSON/cJSON.c
 LIBS = `pkg-config hidapi --libs`
