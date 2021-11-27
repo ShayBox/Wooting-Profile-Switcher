@@ -3,7 +3,7 @@
 #elif __linux__
 #include "linux.h"
 #elif __APPLE__
-#include "macos.h"
+#include "mac.h"
 #endif
 #include "main.h"
 
@@ -56,7 +56,7 @@ int main()
 
     free(buff);
 
-    memcpy(&initial_profile, &last_profile, sizeof(last_profile));
+    memcpy(&initial_profile, &last_profile, sizeof(initial_profile));
 
     load_config();
 
@@ -81,10 +81,10 @@ int update_profile(const char *match)
     else
     {
         if (strlen(last_match)+1 > 1)
-            free(last_match);
+            free((void*)last_match);
 
         last_match = malloc(strlen(match)+1);
-        memcpy(last_match, match, strlen(match)+1);
+        strcpy((char*)last_match, match);
     }
 
     puts(match);
@@ -93,9 +93,9 @@ int update_profile(const char *match)
     for (size_t i = 0; i < process_list_length; i++)
     {
         Process process = process_list[i];
-        #ifdef _DEBUG
+#ifdef _DEBUG
         printf("Proc_match_name: %s\n", process.match);
-        #endif
+#endif
         if (strcmp(match, process.match) == 0)
         {
             new_profile = process.profile;
@@ -130,7 +130,7 @@ void register_cleanup()
     signal(SIGINT, cleanup);
 }
 
-char* read_file(char* filename) {
+char* read_file(const char* filename) {
     FILE *f = fopen(filename, "rt");
     if (f == NULL)
     {
@@ -149,12 +149,42 @@ char* read_file(char* filename) {
     return buffer;
 }
 
+char* write_file(const char* filename, char* content)
+{
+    FILE *f = fopen(filename,"w");
+
+    if(f == NULL)
+    {
+        fprintf(stderr, "Error while writing config file: %s\n", filename);
+        fprintf(stderr, "Press any key to exit");
+        exit(EXIT_FAILURE);           
+    }
+    fprintf(f, "%s", content);
+    fclose(f);
+    return content;
+}
+
 void load_config()
 {
-    // TODO: Get config path per OS if necessary
-    char *path = get_config_path();
+    const char *path = get_config_path();
+    const char *content = NULL;
 
-    char *content = read_file(path);
+    if(access(path, F_OK) == 0)
+    {
+        content = read_file(path);
+    }
+    else
+    {
+        fprintf(stderr, "[WARNING] config not found. creating config in '%s'\n", path);
+        content = write_file(path, create_default_json_string());
+    }
+
+    if (content == NULL)
+    {
+        fprintf(stderr, "No content was read/written\n");
+        exit(EXIT_FAILURE);
+    }
+
     cJSON *json = cJSON_Parse(content);
 
     if (json == NULL)
@@ -166,7 +196,7 @@ void load_config()
         }
         else
         {
-            fprintf(stderr, "General error while trying to parse JSON file: $s\n", path);
+            fprintf(stderr, "General error while trying to parse JSON file: %s\n", path);
         }
         fprintf(stderr, "Press any key to exit");
         getchar();
@@ -238,4 +268,75 @@ void load_config()
         process_list[i].match = proc_name->valuestring;
         process_list[i].profile = profile_index->valueint;
     }
+}
+
+char* create_default_json_string(void)
+{
+    const Process proc_default[2] = {
+#ifdef _WIN32
+        {"Isaac", 1},
+        {"isaac-ng.exe", 2}
+#elif __linux__
+        {"", 1},
+        {"", 2}
+#elif __APPLE__
+        {"Safari", 1},
+        {"Finder", 2}
+#endif
+    };
+
+    char *string = NULL;
+    cJSON *process_list = NULL;
+    cJSON *process = NULL;
+    cJSON *name = NULL;
+    cJSON *profile_index = NULL;
+    size_t index = 0;
+
+    cJSON *profile_config = cJSON_CreateObject();
+    if (profile_config == NULL)
+    {
+        goto end;
+    }
+
+    process_list = cJSON_CreateArray();
+    if (process_list == NULL)
+    {
+        goto end;
+    }
+
+    cJSON_AddItemToObject(profile_config, "process_list", process_list);
+
+    for (index = 0; index < 2; ++index)
+    {
+        process = cJSON_CreateObject();
+        if (process == NULL)
+        {
+            goto end;
+        }
+        cJSON_AddItemToArray(process_list, process);
+
+        name = cJSON_CreateString(proc_default[index].match);
+        if (name == NULL)
+        {
+            goto end;
+        }
+        cJSON_AddItemToObject(process, "process_name", name);
+
+        profile_index = cJSON_CreateNumber(proc_default[index].profile);
+        if (profile_index == NULL)
+        {
+            goto end;
+        }
+        cJSON_AddItemToObject(process, "profile_index", profile_index);
+    }
+
+    string = cJSON_Print(profile_config);
+    if (string == NULL)
+    {
+        fprintf(stderr, "Failed to print monitor.\n");
+    }
+
+end:
+    cJSON_Delete(profile_config);
+    return string;
 }

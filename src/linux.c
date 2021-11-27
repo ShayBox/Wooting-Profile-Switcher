@@ -75,13 +75,31 @@ const char *get_config_path()
     const char *xdg_config_home = getenv("XDG_CONFIG_HOME");
     if (xdg_config_home)
     {
-        return strcat(xdg_config_home, "/WootingProfileSwitcher/config.json");
+        const char *config_path = strcat(xdg_config_home, "/.config/WootingProfileSwitcher");
+
+        struct stat sb;
+
+        if (stat(config_path, &sb) != 0)
+        {
+            mkdir(strcat(xdg_config_home, "/.config"), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+            mkdir(strcat(xdg_config_home, "/.config/WootingProfileSwitcher"), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        }
+        return strcat((char*)config_path, "/config.json");
     }
 
     const char *home = getenv("HOME");
     if (home)
     {
-        return strcat(home, "/.config/WootingProfileSwitcher/config.json");
+        const char *config_path = strcat(home, "/.config/WootingProfileSwitcher");
+
+        struct stat sb;
+
+        if (stat(config_path, &sb) != 0)
+        {
+            mkdir(strcat(home, "/.config"), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+            mkdir(strcat(home, "/.config/WootingProfileSwitcher"), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        }
+        return strcat((char*)config_path, "/config.json");
     }
 
     return "./config.json";

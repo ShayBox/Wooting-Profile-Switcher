@@ -10,4 +10,5 @@ windows/*.obj
 windows/WootingProfileSwitcher.exe
 linux/WootingProfileSwitcher
 mac/WootingProfileSwitcher
+mac/Wooting Profile Switcher.app
 */config.json

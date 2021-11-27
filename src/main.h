@@ -12,4 +12,6 @@ int update_profile(const char *name);
 void set_profile(int profileIndex);
 void register_cleanup(void);
 void load_config(void);
-char* read_file(char* filename);
+char* read_file(const char* filename);
+char* write_file(const char* filename, char* content);
+char* create_default_json_string();
