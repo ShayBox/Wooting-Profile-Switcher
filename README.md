@@ -10,6 +10,9 @@ A small tool to automatically switch between the profiles of your Wooting keyboa
 - ArchLinux [AUR](https://aur.archlinux.org/packages/wootingprofileswitcher-git)
 - Other [Build](#linux-1)
 
+### macOS
+- Placeholder
+
 ## Building
 
 ### Windows
@@ -39,6 +42,17 @@ To build debug builds just replace `release` with `debug` in the commands you ru
 - - `git clone --recurse-submodules https://github.com/ShayBox/WootingProfileSwitcher.git`
 - Navigate to the `linux` directory inside the repository directory.
 - - `cd WootingProfileSwitcher/linux`
+- Run `make`.
+
+### macOS
+- Make sure you have [xcode](https://apps.apple.com/de/app/xcode/id497799835) installed.
+- Open the temrinal.
+- Install [brew](https://brew.sh) (make sure it install the xcode command-line utilities).
+- Install the following packages by running `brew install automake pkg-config hidapi`.
+- Clone the repository.
+- - `git clone --recurse-submodules https://github.com/ShayBox/WootingProfileSwitcher.git`
+- Navigate to the `mac` directory inside the repository directory.
+- - `cd WootingProfileSwitcher/mac`
 - Run `make`.
 
 ## License
