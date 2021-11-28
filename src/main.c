@@ -92,7 +92,7 @@ int update_profile(const char *match)
         strcpy((char*)last_match, match);
     }
 
-    write_log(stdout, match);
+    write_log(stdout, "%s\n", match);
 
     int new_profile = 0; // Default to Digital Profile
     for (size_t i = 0; i < process_list_length; i++)
