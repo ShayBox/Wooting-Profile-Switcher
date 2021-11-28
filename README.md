@@ -1,4 +1,5 @@
 # WootingProfileSwitcher
+**DISCLAIMER** We are not professional C/Objective-C coders and do this in our free time.
 A small tool to automatically switch between the profiles of your Wooting keyboard.
 
 ## Installation
