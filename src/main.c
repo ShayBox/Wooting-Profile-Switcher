@@ -34,7 +34,7 @@ int main()
 
     if (!wooting_rgb_kbd_connected())
     {
-        write_log(stdout, "Keyboard not connected.");
+        write_log(stdout, "Keyboard not connected.\n");
         return EXIT_FAILURE;
     }
 
@@ -352,7 +352,6 @@ void write_log(const FILE* stream, const char* format, ...) {
 #ifdef __APPLE__
     char str[1024];
     vsprintf(str, format, args);
-    puts(str);
 if (stream == stdout)
     append_text_to_view(str);
 else if (stream == stderr)
