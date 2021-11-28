@@ -16,5 +16,4 @@ void load_config(void);
 char* read_file(const char* filename);
 char* write_file(const char* filename, char* content);
 char* create_default_json_string();
-void write_log(const char* format, ...);
-void write_error_log(const char* format, ...);
+void write_log(const FILE* stream, const char* format, ...);
