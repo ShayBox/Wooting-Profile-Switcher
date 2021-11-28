@@ -348,15 +348,15 @@ end:
 
 void write_log(const char* format, ...) {
     va_list args;
-    va_start( args, format );
+    va_start(args, format);
 #ifdef __APPLE__
     char str[1024];
     vsprintf(str, format, args);
     puts(str);
     append_text_to_view(str);
 #endif
-    fprintf( stdout, format, args );
-    va_end( args );
+    vfprintf(stdout, format, args);
+    va_end(args);
 }
 
 void write_error_log(const char* format, ...)
@@ -368,6 +368,6 @@ void write_error_log(const char* format, ...)
     vsprintf(str, format, args);
     append_error_to_view(str);
 #endif
-    fprintf( stderr, format, args );
-    va_end( args );
+    vfprintf(stderr, format, args);
+    va_end(args);
 }
