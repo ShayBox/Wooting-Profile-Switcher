@@ -32,4 +32,4 @@ create_bundle:
 	mkdir $(BUNDLENAME)
 	cp Info.plist $(BUNDLENAME)/Info.plist
 	cp $(APPNAME).icns $(BUNDLENAME)/$(APPNAME).icns
-	cp $(APPNAME) $(BUNDLENAME)/$(APPNAME)
+	mv $(APPNAME) $(BUNDLENAME)/$(APPNAME)
