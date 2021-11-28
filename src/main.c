@@ -352,10 +352,7 @@ void write_log(const FILE* stream, const char* format, ...) {
 #ifdef __APPLE__
     char str[1024];
     vsprintf(str, format, args);
-if (stream == stdout)
-    append_text_to_view(str);
-else if (stream == stderr)
-    append_error_to_view(str);
+    append_text_to_view(stream, str);
 #endif
     vfprintf(stream, format, args);
     va_end(args);

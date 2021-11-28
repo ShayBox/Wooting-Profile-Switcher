@@ -63,7 +63,7 @@ int init_window()
 
     [window setContentView:textView];
 
-    append_text_to_view("Wooting Profile Switcher started!\n");
+    append_text_to_view(stdout, "Wooting Profile Switcher started!\n");
     //[textView insertText:@"Test"]; //TODO: Add usual console output to textview
 
     return 1;
@@ -84,19 +84,15 @@ void start_listening()
     [p release];
 }
 
-void append_text_to_view(char* text)
+void append_text_to_view(const FILE* stream, char* text)
 {
-    NSDictionary *attrs = @{ NSForegroundColorAttributeName : NSColor.whiteColor };
-    NSString *string = [NSString stringWithUTF8String: text];
-    NSAttributedString* attr = [[NSAttributedString alloc] initWithString:string attributes:attrs];
+    NSDictionary *attrs;
 
-    [[textView textStorage] appendAttributedString:attr];
-    [textView scrollRangeToVisible:NSMakeRange([[textView string] length], 0)];
-}
+    if (stream == stdout)
+        attrs = @{ NSForegroundColorAttributeName : NSColor.whiteColor };
+    else if (stream == stderr)
+        attrs = @{ NSForegroundColorAttributeName : NSColor.redColor };
 
-void append_error_to_view(char* text)
-{
-    NSDictionary *attrs = @{ NSForegroundColorAttributeName : NSColor.redColor };
     NSString *string = [NSString stringWithUTF8String: text];
     NSAttributedString* attr = [[NSAttributedString alloc] initWithString:string attributes:attrs];
 
