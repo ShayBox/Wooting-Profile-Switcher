@@ -1,10 +1,10 @@
 /*
-* Copyright 2018 Wooting Technologies B.V.
-*
-* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
+ * Copyright 2018 Wooting Technologies B.V.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 #pragma once
 
 #ifdef __cplusplus
@@ -12,18 +12,18 @@ extern "C" {
 #endif
 
 #ifdef _WIN32
-#ifdef WOOTINGRGBSDK_EXPORTS  
-#define WOOTINGRGBSDK_API __declspec(dllexport)   
-#else  
-#define WOOTINGRGBSDK_API __declspec(dllimport)   
+#ifdef WOOTINGRGBSDK_EXPORTS
+#define WOOTINGRGBSDK_API __declspec(dllexport)
+#else
+#define WOOTINGRGBSDK_API __declspec(dllimport)
 #endif
 #else
 // __declspec is win32 only
 #define WOOTINGRGBSDK_API
 #endif
 
-#include "stdint.h"
 #include "stdbool.h"
+#include "stdint.h"
 #include "wooting-usb.h"
 
 /** @brief Check if keyboard connected.
@@ -40,7 +40,8 @@ WOOTINGRGBSDK_API bool wooting_rgb_kbd_connected(void);
 
 /** @brief Set callback for when a keyboard disconnects.
 
-The callback will be called when a Wooting keyboard disconnects. The callback will only trigger after a failed color change.
+The callback will be called when a Wooting keyboard disconnects. The callback
+will only trigger after a failed color change.
 
 @ingroup API
 @param cb The function pointer of the callback
@@ -78,9 +79,11 @@ WOOTINGRGBSDK_API bool wooting_rgb_reset(void);
 
 /** @brief Directly set and update 1 key on the keyboard.
 
-This function will directly change the color of 1 key on the keyboard. This will not influence the keyboard color array.
+This function will directly change the color of 1 key on the keyboard. This will
+not influence the keyboard color array.
 
-Use this function for simple applifications, like a notification. Use the array functions if you want to change the entire keyboard.
+Use this function for simple applifications, like a notification. Use the array
+functions if you want to change the entire keyboard.
 
 @ingroup API
 @param row The horizontal index of the key
@@ -92,13 +95,17 @@ Use this function for simple applifications, like a notification. Use the array 
 @returns
 This functions return true (1) if the colour is set.
 */
-WOOTINGRGBSDK_API bool wooting_rgb_direct_set_key(uint8_t row, uint8_t column, uint8_t red, uint8_t green, uint8_t blue);
+WOOTINGRGBSDK_API bool wooting_rgb_direct_set_key(uint8_t row, uint8_t column,
+                                                  uint8_t red, uint8_t green,
+                                                  uint8_t blue);
 
 /** @brief Directly reset 1 key on the keyboard to the original color.
 
-This function will directly reset the color of 1 key on the keyboard. This will not influence the keyboard color array.
+This function will directly reset the color of 1 key on the keyboard. This will
+not influence the keyboard color array.
 
-Use this function for simple applifications, like a notification. Use the array functions if you want to change the entire keyboard.
+Use this function for simple applifications, like a notification. Use the array
+functions if you want to change the entire keyboard.
 
 @ingroup API
 @param row The horizontal index of the key
@@ -107,11 +114,13 @@ Use this function for simple applifications, like a notification. Use the array 
 @returns
 This functions return true (1) if the colour is reset.
 */
-WOOTINGRGBSDK_API bool wooting_rgb_direct_reset_key(uint8_t row, uint8_t column);
+WOOTINGRGBSDK_API bool wooting_rgb_direct_reset_key(uint8_t row,
+                                                    uint8_t column);
 
 /** @brief Send the colors from the color array to the keyboard.
 
-This function will send the changes made with the wooting_rgb_array single and full functions to the keyboard.
+This function will send the changes made with the wooting_rgb_array single and
+full functions to the keyboard.
 
 @ingroup API
 
@@ -120,9 +129,11 @@ This functions return true (1) if the colours are updated.
 */
 WOOTINGRGBSDK_API bool wooting_rgb_array_update_keyboard(void);
 
-/** @brief Change the auto update flag for the wooting_rgb_array single and full functions functions.
+/** @brief Change the auto update flag for the wooting_rgb_array single and full
+functions functions.
 
-This function can be used to set a auto update trigger after every change with the wooting_rgb_array single and full functions function.
+This function can be used to set a auto update trigger after every change with
+the wooting_rgb_array single and full functions function.
 
 Standard is set to false.
 
@@ -136,9 +147,10 @@ WOOTINGRGBSDK_API void wooting_rgb_array_auto_update(bool auto_update);
 
 /** @brief Set a single color in the colour array.
 
-This function will set a single color in the colour array. This will not directly update the keyboard (unless the flag is set), so
-it can be called frequently. For example in a loop that updates the entire keyboard. This way you can avoid dealing with C arrays from
-different languages.
+This function will set a single color in the colour array. This will not
+directly update the keyboard (unless the flag is set), so it can be called
+frequently. For example in a loop that updates the entire keyboard. This way you
+can avoid dealing with C arrays from different languages.
 
 @ingroup API
 @param row The horizontal index of the key
@@ -148,41 +160,54 @@ different languages.
 @param blue 0-255 value of the blue color
 
 @returns
-This functions return true (1) if the colours are changed (if auto update flag: updated).
+This functions return true (1) if the colours are changed (if auto update flag:
+updated).
 */
-WOOTINGRGBSDK_API bool wooting_rgb_array_set_single(uint8_t row, uint8_t column, uint8_t red, uint8_t green, uint8_t blue);
+WOOTINGRGBSDK_API bool wooting_rgb_array_set_single(uint8_t row, uint8_t column,
+                                                    uint8_t red, uint8_t green,
+                                                    uint8_t blue);
 
 /** @brief Set a full colour array.
 
-This function will set a complete color array. This will not directly update the keyboard (unless the flag is set). 
+This function will set a complete color array. This will not directly update the
+keyboard (unless the flag is set).
 
-If you use a non-C language it is recommended to use the wooting_rgb_array_set_single function to change the colors to avoid compatibility issues.
+If you use a non-C language it is recommended to use the
+wooting_rgb_array_set_single function to change the colors to avoid
+compatibility issues.
 
-Buffer should be layout out as [Row0Col0Red, Row0Col0Green, Row0Col0Blue, Row0Col1Red, Row0Col1Green, Row0Col1Blue, ... Row5Row20Red, Row5Row20Green, Row5Row20Blue]. 
-Expected size is 6 row * 21 columns * 3 colors per key = 378 bytes.
+Buffer should be layout out as [Row0Col0Red, Row0Col0Green, Row0Col0Blue,
+Row0Col1Red, Row0Col1Green, Row0Col1Blue, ... Row5Row20Red, Row5Row20Green,
+Row5Row20Blue]. Expected size is 6 row * 21 columns * 3 colors per key = 378
+bytes.
 
 @ingroup API
-@param colors_buffer Pointer to a buffer of a full color array 
+@param colors_buffer Pointer to a buffer of a full color array
 
 @returns
-This functions return true (1) if the colours are changed (if auto update flag: updated).
+This functions return true (1) if the colours are changed (if auto update flag:
+updated).
 */
 WOOTINGRGBSDK_API bool wooting_rgb_array_set_full(const uint8_t *colors_buffer);
 
 /** @brief Retrieve information about the connected Device
 
-This function returns a pointer to a struct which provides various relevant details about the currently connected device. E.g. max rgb rows, columns, etc
+This function returns a pointer to a struct which provides various relevant
+details about the currently connected device. E.g. max rgb rows, columns, etc
 
 @ingroup API
 
 @returns
-This functions returns a pointer to a `WOOTING_USB_META` struct which contains relevant Device Information
+This functions returns a pointer to a `WOOTING_USB_META` struct which contains
+relevant Device Information
 */
-WOOTINGRGBSDK_API const WOOTING_USB_META* wooting_rgb_device_info(void);
+WOOTINGRGBSDK_API const WOOTING_USB_META *wooting_rgb_device_info(void);
 
 /** @brief Retrieve layout of the connected device
 
-This function returns an enum flag indicating the layout, e.g. ISO. See WOOTING_DEVICE_LAYOUT for options. It will return LAYOUT_UNKNOWN if no device is connected or it failed to get the layout info from the device
+This function returns an enum flag indicating the layout, e.g. ISO. See
+WOOTING_DEVICE_LAYOUT for options. It will return LAYOUT_UNKNOWN if no device is
+connected or it failed to get the layout info from the device
 
 @ingroup API
 
@@ -194,4 +219,3 @@ WOOTINGRGBSDK_API WOOTING_DEVICE_LAYOUT wooting_rgb_device_layout(void);
 #ifdef __cplusplus
 }
 #endif
-
