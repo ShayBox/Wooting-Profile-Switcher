@@ -1,7 +1,0 @@
-[submodule "cJSON"]
-	path = cJSON
-	url = https://github.com/DaveGamble/cJSON
-
-[submodule "wooting-rgb-sdk"]
-	path = wooting-rgb-sdk
-	url = https://github.com/WootingKb/wooting-rgb-sdk

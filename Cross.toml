@@ -1,0 +1,8 @@
+# https://github.com/cross-rs/cross/wiki/FAQ#custom-images
+[target.x86_64-unknown-linux-gnu]
+image = "ghcr.io/cross-rs/x86_64-unknown-linux-gnu:main"
+
+# https://github.com/cross-rs/cross/wiki/FAQ#using-clang--bindgen
+[build]
+pre-build = ["apt-get update && apt-get install --assume-yes --no-install-recommends libclang-10-dev clang-10 libusb-1.0-0-dev libx11-xcb-dev"]
+

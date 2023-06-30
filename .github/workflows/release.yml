@@ -1,0 +1,62 @@
+on:
+  release:
+    types: [ created ]
+
+jobs:
+  release:
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux-x86_64
+            target: x86_64-unknown-linux-gnu
+            runner: ubuntu-latest
+
+          - name: macOS-Apple
+            target: aarch64-apple-darwin
+            runner: macos-latest
+
+          - name: macOS-Intel
+            target: x86_64-apple-darwin
+            runner: macos-latest
+
+          - name: Windows-x86_64
+            target: x86_64-pc-windows-msvc
+            runner: windows-latest
+
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Fetch Repository
+        uses: actions/checkout@v3
+
+      - name: Update Rust Toolchain
+        run: rustup update stable
+
+      - name: Add Rust Target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Build Release Binaries
+        run: |
+          cargo install cross
+          cross build --release --target ${{ matrix.target }}
+
+      - name: Build Debug Binary (Windows)
+        if: ${{ matrix.runner == 'windows-latest' }}
+        run: |
+          cross build --target ${{ matrix.target }}
+          mv ./target/${{ matrix.target }}/debug/wooting-profile-switcher.exe ./target/${{ matrix.target }}/debug/wooting-profile-switcher-debug.exe
+
+      - name: Create Zip Archive (Windows)
+        if: ${{ matrix.runner == 'windows-latest' }}
+        run: bash -c '7z a ${{ matrix.name }}.zip ./target/${{ matrix.target }}/{debug/wooting-profile-switcher-debug.exe,release/wooting-profile-switcher.exe}'
+
+      - name: Create Zip Archive (Other)
+        if: ${{ matrix.runner != 'windows-latest' }}
+        run: zip -j ${{ matrix.name }}.zip target/${{ matrix.target }}/release/wooting-profile-switcher
+
+      - name: Upload Zip Archive
+        run: gh release upload ${{ github.ref_name }} ${{ matrix.name }}.zip --clobber

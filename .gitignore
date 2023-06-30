@@ -1,14 +1,3 @@
+.idea/
 .vscode/
-cJSON/
-wooting-rgb-sdk/
-
-.DS_STORE
-
-windows/build
-windows/*.obj
-
-windows/WootingProfileSwitcher.exe
-linux/WootingProfileSwitcher
-mac/WootingProfileSwitcher
-mac/Wooting Profile Switcher.app
-*/config.json
+target/
