@@ -8,10 +8,12 @@ use std::{ffi::OsStr, process::exit, time::Duration};
 
 use active_win_pos_rs::{get_active_window, ActiveWindow};
 use clap::Parser;
+use regex::Regex;
+use wildflower::Pattern;
 use wooting_profile_switcher::{get_active_profile_index, set_active_profile_index};
 use wooting_rgb_sys::{wooting_rgb_device_info, wooting_rgb_kbd_connected, wooting_rgb_reset};
 
-use crate::config::Config;
+use crate::config::{Config, Rule};
 
 mod config;
 
@@ -64,23 +66,75 @@ fn main() -> anyhow::Result<()> {
             continue;
         };
 
-        println!("Active Process Name: {active_process_name}");
+        let active_process_state = Rule {
+            app_name: Some(active_window.app_name),
+            process_name: Some(active_process_name.to_string()),
+            process_path: Some(active_window.process_path.display().to_string()),
+            profile_index: last_profile_index,
+            title: Some(active_window.title),
+        };
+        println!("Active Process State: {active_process_state:#?}");
 
-        let Some(process) = config
-            .process_list
-            .iter()
-            .find(|process| process.process_name == active_process_name)
-        else {
+        let Some(profile_index) = find_match(active_process_state, &config.rules) else {
             continue;
         };
 
-        if process.profile_index == last_profile_index {
+        if profile_index == last_profile_index {
             continue;
         } else {
-            last_profile_index = process.profile_index;
+            last_profile_index = profile_index;
         }
 
-        println!("Process Profile Index: {}", process.profile_index);
-        set_active_profile_index(process.profile_index, config.send_sleep_ms);
+        println!("Process Profile Index: {}", profile_index);
+        set_active_profile_index(profile_index, config.send_sleep_ms);
     }
+}
+
+fn find_match(active_process_state: Rule, rules: &[Rule]) -> Option<u8> {
+    type RulePropFn = Box<dyn Fn(&Rule) -> Option<&String>>;
+
+    let active_state_props: Vec<(Option<String>, RulePropFn)> = vec![
+        (
+            active_process_state.app_name,
+            Box::new(|rule| rule.app_name.as_ref()),
+        ),
+        (
+            active_process_state.process_name,
+            Box::new(|rule| rule.process_name.as_ref()),
+        ),
+        (
+            active_process_state.process_path,
+            Box::new(|rule| rule.process_path.as_ref()),
+        ),
+        (
+            active_process_state.title,
+            Box::new(|rule| rule.title.as_ref()),
+        ),
+    ];
+
+    for (active_prop, rule_prop_fn) in active_state_props {
+        let Some(active_prop) = active_prop else {
+            continue;
+        };
+
+        let Some(rule) = rules.iter().find(|rule| {
+            if let Some(rule_prop) = rule_prop_fn(rule) {
+                if Pattern::new(rule_prop).matches(&active_prop) {
+                    true
+                } else if let Ok(re) = Regex::new(rule_prop) {
+                    re.is_match(&active_prop)
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        }) else {
+            continue;
+        };
+
+        return Some(rule.profile_index);
+    }
+
+    None
 }

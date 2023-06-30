@@ -10,16 +10,19 @@ use serde::{Deserialize, Serialize};
 const CARGO_CRATE_NAME: &str = env!("CARGO_CRATE_NAME");
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct Process {
-    pub process_name: String,
+pub struct Rule {
+    pub app_name: Option<String>,
+    pub process_name: Option<String>,
+    pub process_path: Option<String>,
     pub profile_index: u8,
+    pub title: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
     pub loop_sleep_ms: u64,
     pub send_sleep_ms: u64,
-    pub process_list: Vec<Process>,
+    pub rules: Vec<Rule>,
 }
 
 impl Default for Config {
@@ -27,14 +30,20 @@ impl Default for Config {
         Self {
             loop_sleep_ms: 250,
             send_sleep_ms: 250,
-            process_list: vec![
-                Process {
-                    process_name: String::from("Isaac"),
+            rules: vec![
+                Rule {
+                    app_name: None,
+                    process_name: Some(String::from("Isaac")),
+                    process_path: None,
                     profile_index: 1,
+                    title: None,
                 },
-                Process {
-                    process_name: String::from("isaac-ng.exe"),
+                Rule {
+                    app_name: None,
+                    process_name: Some(String::from("isaac-ng.exe")),
+                    process_path: None,
                     profile_index: 2,
+                    title: None,
                 },
             ],
         }
