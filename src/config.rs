@@ -20,14 +20,16 @@ pub struct Rule {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
+    pub fallback_profile_index: Option<u8>,
     pub loop_sleep_ms: u64,
-    pub send_sleep_ms: u64,
     pub rules: Vec<Rule>,
+    pub send_sleep_ms: u64,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
+            fallback_profile_index: None,
             loop_sleep_ms: 250,
             send_sleep_ms: 250,
             rules: vec![

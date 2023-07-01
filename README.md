@@ -23,6 +23,7 @@ The config file is generated on first run with the following format
 
 ```json
 {
+    "fallback_profile_index": null,
     "loop_sleep_ms": 250,
     "send_sleep_ms": 250,
     "rules": [
@@ -44,6 +45,7 @@ The config file is generated on first run with the following format
 }
 ```
 
+The `fallback_profile_index` variable allows you to set a fallback profile index to use when no match is found.  
 The `sleep_ms` variables allow you to customize the duration between checking the active process, and duration between sending Wooting USB commands.  
 The `rules` variable is a list of rules that supports [Wildcard] and [Regex] for `app_name`, `process_name`, `process_path` and `title` variables.
 

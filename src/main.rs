@@ -39,6 +39,7 @@ fn main() -> anyhow::Result<()> {
             exit(1)
         }
 
+        wooting_rgb_reset();
         *wooting_rgb_device_info()
     };
 
@@ -75,8 +76,15 @@ fn main() -> anyhow::Result<()> {
         };
         println!("Active Process State: {active_process_state:#?}");
 
-        let Some(profile_index) = find_match(active_process_state, &config.rules) else {
-            continue;
+        let profile_index = match find_match(active_process_state, &config.rules) {
+            Some(profile_index) => profile_index,
+            None => {
+                if let Some(fallback_profile_index) = config.fallback_profile_index {
+                    fallback_profile_index
+                } else {
+                    continue;
+                }
+            }
         };
 
         if profile_index == last_profile_index {
