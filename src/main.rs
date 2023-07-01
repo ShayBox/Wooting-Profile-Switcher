@@ -39,7 +39,6 @@ fn main() -> anyhow::Result<()> {
             exit(1)
         }
 
-        wooting_rgb_reset();
         *wooting_rgb_device_info()
     };
 
@@ -50,11 +49,13 @@ fn main() -> anyhow::Result<()> {
 
     let mut last_active_window: ActiveWindow = Default::default();
     let mut last_profile_index = get_active_profile_index(device_info);
+    let original_profile_index = last_profile_index;
 
     loop {
         std::thread::sleep(Duration::from_millis(config.loop_sleep_ms));
-        let Ok(active_window) = get_active_window() else {
-            continue;
+        let active_window = match get_active_window() {
+            Ok(window) => window,
+            Err(_) => continue,
         };
 
         if active_window == last_active_window {
@@ -63,8 +64,9 @@ fn main() -> anyhow::Result<()> {
             last_active_window = active_window.to_owned();
         }
 
-        let Some(active_process_name) = active_window.process_path.file_name().and_then(OsStr::to_str) else {
-            continue;
+        let active_process_name = match active_window.process_path.file_name().and_then(OsStr::to_str) {
+            Some(name) => name,
+            None => continue,
         };
 
         let active_process_state = Rule {
@@ -76,18 +78,25 @@ fn main() -> anyhow::Result<()> {
         };
         println!("Active Process State: {active_process_state:#?}");
 
-        let Some(profile_index) = find_match(active_process_state, &config.rules) else {
-            continue;
-        };
+        let mut rule_found = false;
+        let profile_index = find_match(active_process_state, &config.rules);
+        if let Some(profile_index) = profile_index {
+            rule_found = true;
+            if profile_index == last_profile_index {
+                continue;
+            } else {
+                last_profile_index = profile_index;
+            }
 
-        if profile_index == last_profile_index {
-            continue;
-        } else {
-            last_profile_index = profile_index;
+            println!("Process Profile Index: {}", profile_index);
+            set_active_profile_index(profile_index, config.send_sleep_ms);
         }
 
-        println!("Process Profile Index: {}", profile_index);
-        set_active_profile_index(profile_index, config.send_sleep_ms);
+        if !rule_found && last_profile_index != original_profile_index {
+            println!("No matching rule found, resetting profile index to original: {}", original_profile_index);
+            set_active_profile_index(original_profile_index, config.send_sleep_ms);
+            last_profile_index = original_profile_index;
+        }
     }
 }
 
