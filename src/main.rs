@@ -39,6 +39,7 @@ fn main() -> anyhow::Result<()> {
             exit(1)
         }
 
+        wooting_rgb_reset();
         *wooting_rgb_device_info()
     };
 
