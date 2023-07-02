@@ -13,9 +13,7 @@ Automatically switch Wooting keyboard profiles based on focused window
 
 ## Installation
 
-You can [Download] and Extract the latest release for your operating system  
-You can also install via cargo:  
-`$ cargo install --git https://github.com/ShayBox/WootingProfileSwitcher`
+[Download the latest release](https://github.com/ShayBox/WootingProfileSwitcher/releases/latest)
 
 ## Configuration
 
@@ -75,6 +73,5 @@ The `rules` variable is a list of rules that supports [Wildcard] and [Regex] for
 }
 ```
 
-[Download]: https://github.com/ShayBox/WootingProfileSwitcher/releases/latest
 [Wildcard]: https://crates.io/crates/wildflower
 [Regex]: https://crates.io/crates/regex
