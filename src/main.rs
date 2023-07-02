@@ -1,8 +1,5 @@
-// Disable the Windows Command Prompt for release builds
-#![cfg_attr(
-    all(not(debug_assertions), target_os = "windows"),
-    windows_subsystem = "windows"
-)]
+// Prevents additional console window on Windows in release, DO NOT REMOVE!!
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::{ffi::OsStr, process::exit, time::Duration};
 
@@ -63,7 +60,11 @@ fn main() -> anyhow::Result<()> {
             last_active_window = active_window.to_owned();
         }
 
-        let Some(active_process_name) = active_window.process_path.file_name().and_then(OsStr::to_str) else {
+        let Some(active_process_name) = active_window
+            .process_path
+            .file_name()
+            .and_then(OsStr::to_str)
+        else {
             continue;
         };
 

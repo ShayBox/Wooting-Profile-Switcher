@@ -1,7 +1,7 @@
 [package]
 name = "wooting-profile-switcher"
 description = "Automatically switch Wooting keyboard profiles based on focused window"
-version = "1.2.0"
+version = "1.4.0"
 authors = ["Shayne Hartford <shaybox@shaybox.com>"]
 edition = "2021"
 readme = "README.md"
@@ -10,19 +10,29 @@ license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[build-dependencies]
+tauri-build = { version = "1.4", features = [] }
+
 [dependencies]
 active-win-pos-rs = "0.8"
 anyhow = "1"
 clap = { version = "4.3", features = ["derive"] }
+dirs = "5.0"
 regex = "1.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tauri = { version = "1.4", features = ["shell-open", "updater"] }
 wildflower = "0.3"
 wooting-rgb-sys = "0.2"
 
-# https://github.com/johnthagen/min-sized-rust
+[features]
+# this feature is used for production builds or when `devPath` points to the filesystem
+# DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]
+
+# https://tauri.app/v1/guides/building/app-size/#rust-build-time-optimizations
 [profile.release]
-strip = true      # Automatically strip symbols from the binary.
-opt-level = "z"   # Optimize for size.
-lto = true
-codegen-units = 1
+codegen-units = 1 # Compile crates one after another so the compiler can optimize better
+lto = true # Enables link to optimizations
+opt-level = "s" # Optimize for binary size
+strip = true # Remove debug symbols

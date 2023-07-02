@@ -1,13 +1,12 @@
 use std::{
+    ffi::OsStr,
     fs::File,
     io::{Read, Seek, Write},
     path::PathBuf,
 };
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
-
-const CARGO_CRATE_NAME: &str = env!("CARGO_CRATE_NAME");
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Rule {
@@ -55,10 +54,23 @@ impl Default for Config {
 impl Config {
     pub fn get_path() -> Result<PathBuf> {
         let mut path = std::env::current_exe()?;
-        path.set_file_name(CARGO_CRATE_NAME);
         path.set_extension("json");
 
-        Ok(path)
+        let config_path = if cfg!(debug_assertions) {
+            path
+        } else {
+            let Some(file_name) = path.file_name().and_then(OsStr::to_str) else {
+                bail!("Could not get current executable file name")
+            };
+
+            let Some(path) = dirs::config_dir() else {
+                bail!("Could not get config directory path");
+            };
+
+            path.join(file_name)
+        };
+
+        Ok(config_path)
     }
 
     pub fn load() -> Result<Self> {
