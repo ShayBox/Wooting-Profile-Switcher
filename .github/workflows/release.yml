@@ -16,12 +16,8 @@ jobs:
             target: x86_64-unknown-linux-gnu
             runner: ubuntu-latest
 
-          - name: macOS-Apple
-            target: aarch64-apple-darwin
-            runner: macos-latest
-
-          - name: macOS-Intel
-            target: x86_64-apple-darwin
+          - name: macOS-universal
+            target: universal-apple-darwin
             runner: macos-latest
 
           - name: Windows-x86_64
@@ -43,7 +39,12 @@ jobs:
       - name: Update Rust Toolchain
         run: rustup update stable
 
-      - name: Add Rust Target
+      - name: Add Rust Target (macOS)
+        if: ${{ matrix.runner == 'macos-latest' }}
+        run: rustup target add aarch64-apple-darwin
+
+      - name: Add Rust Target (Other)
+        if: ${{ matrix.runner != 'macos-latest' }}
         run: rustup target add ${{ matrix.target }}
 
       - name: Build Tauri Installers/Bundles/Images
