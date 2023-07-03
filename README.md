@@ -15,6 +15,10 @@ Automatically switch Wooting keyboard profiles based on focused window
 
 [Download the latest release](https://github.com/ShayBox/WootingProfileSwitcher/releases/latest)
 
+## System Tray Icon
+
+The system tray icon allows you to pause/resume, quit, and set the active profile
+
 ## Configuration
 
 The config file is generated on first run with the following format

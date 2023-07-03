@@ -1,11 +1,24 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{ffi::OsStr, process::exit, time::Duration};
+use std::{
+    ffi::OsStr,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 
 use active_win_pos_rs::{get_active_window, ActiveWindow};
+use anyhow::Result;
 use clap::Parser;
 use regex::Regex;
+use tauri::{
+    Builder,
+    CustomMenuItem,
+    SystemTray,
+    SystemTrayEvent,
+    SystemTrayMenu,
+    SystemTrayMenuItem,
+};
 use wildflower::Pattern;
 use wooting_profile_switcher::{get_active_profile_index, set_active_profile_index};
 use wooting_rgb_sys::{wooting_rgb_device_info, wooting_rgb_kbd_connected, wooting_rgb_reset};
@@ -21,26 +34,97 @@ struct Args {
     /// Can be useful for automation scripting.
     #[arg(short, long)]
     profile_index: Option<u8>,
+
+    /// Pause the program by default.
+    #[arg(long, default_value_t = false)]
+    paused: bool,
 }
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Reset the keyboard if the program is killed
+    ctrlc::set_handler(move || unsafe {
+        wooting_rgb_reset();
+        std::process::exit(0);
+    })?;
+
+    // Reset the keyboard if the program panics
     std::panic::set_hook(Box::new(|_| unsafe {
         wooting_rgb_reset();
+        std::process::exit(0);
     }));
 
-    let args = Args::parse();
-    let config = Config::load()?;
+    let args = Arc::new(RwLock::new(Args::parse()));
+    let config = Arc::new(Config::load()?);
+
+    // Poll the active window in a background task
+    let args_clone = args.clone();
+    let config_clone = config.clone();
+    tokio::spawn(async move {
+        poll_active_window(args_clone, &config_clone).await.unwrap();
+    });
+
+    Builder::default()
+        .system_tray(
+            SystemTray::new().with_menu(
+                SystemTrayMenu::new()
+                    .add_item(CustomMenuItem::new(String::from("digital"), "Digital"))
+                    .add_item(CustomMenuItem::new(String::from("analog_1"), "Analog 1"))
+                    .add_item(CustomMenuItem::new(String::from("analog_2"), "Analog 2"))
+                    .add_item(CustomMenuItem::new(String::from("analog_3"), "Analog 3"))
+                    .add_native_item(SystemTrayMenuItem::Separator)
+                    .add_item(CustomMenuItem::new(String::from("pause"), "Pause"))
+                    .add_native_item(SystemTrayMenuItem::Separator)
+                    .add_item(CustomMenuItem::new(String::from("quit"), "Quit")),
+            ),
+        )
+        .on_system_tray_event(move |app, event| {
+            if let SystemTrayEvent::MenuItemClick { id, .. } = event {
+                let item_handle = app.tray_handle().get_item(&id);
+                match id.as_str() {
+                    "quit" => {
+                        std::process::exit(0);
+                    }
+                    "pause" => {
+                        let paused = args.read().unwrap().paused;
+                        let title = if paused { "Pause" } else { "Resume" };
+                        args.write().unwrap().paused = !paused;
+                        item_handle.set_title(title).unwrap();
+                    }
+                    "digital" => {
+                        set_active_profile_index(0, config.send_sleep_ms);
+                    }
+                    "analog_1" => {
+                        set_active_profile_index(1, config.send_sleep_ms);
+                    }
+                    "analog_2" => {
+                        set_active_profile_index(2, config.send_sleep_ms);
+                    }
+                    "analog_3" => {
+                        set_active_profile_index(3, config.send_sleep_ms);
+                    }
+                    _ => {}
+                }
+            }
+        })
+        .run(tauri::generate_context!())?;
+
+    Ok(())
+}
+
+/// Poll the active window for matching rules and apply the profile
+async fn poll_active_window(args: Arc<RwLock<Args>>, config: &Config) -> Result<()> {
     let device_info = unsafe {
         if !wooting_rgb_kbd_connected() {
             println!("Keyboard not connected.");
-            exit(1)
+            std::process::exit(1)
         }
 
         wooting_rgb_reset();
         *wooting_rgb_device_info()
     };
 
-    if let Some(profile_index) = args.profile_index {
+    if let Some(profile_index) = args.read().unwrap().profile_index {
         set_active_profile_index(profile_index, config.send_sleep_ms);
         return Ok(());
     }
@@ -50,6 +134,10 @@ fn main() -> anyhow::Result<()> {
 
     loop {
         std::thread::sleep(Duration::from_millis(config.loop_sleep_ms));
+        if args.read().unwrap().paused {
+            continue;
+        }
+
         let Ok(active_window) = get_active_window() else {
             continue;
         };
@@ -99,6 +187,7 @@ fn main() -> anyhow::Result<()> {
     }
 }
 
+/// Find a matching rule for the active process using Wildcard and Regex
 fn find_match(active_process_state: Rule, rules: &[Rule]) -> Option<u8> {
     type RulePropFn = Box<dyn Fn(&Rule) -> Option<&String>>;
 
