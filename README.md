@@ -38,18 +38,18 @@ The config file is generated on first-run in the following location and format
     "loop_sleep_ms": 250,
     // Sleep duration between sending Wooting USB commands
     "send_sleep_ms": 250,
-    // List of rule objects
+    // List of rule objects, all match rules support Wildcard and Regex
     "rules": [
         {
-            // The official app name (optional)
+            // Match against the official app name (optional)
             "app_name": null,
-            // The running process name (optional)
+            // Match against the running process name (optional)
             "process_name": "Isaac",
-            // The running process path (optional)
+            // Match against the running process path (optional)
             "process_path": null,
             // The profile to switch to when a match is found for this rule (0-3)
             "profile_index": 1,
-            // The running window title (optional)
+            // Match against the running window title (optional)
             "title": null
         },
         {
