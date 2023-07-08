@@ -1,7 +1,7 @@
 [package]
 name = "wooting-profile-switcher"
 description = "Automatically switch Wooting keyboard profiles based on focused window"
-version = "1.5.2"
+version = "1.5.3"
 authors = ["Shayne Hartford <shaybox@shaybox.com>"]
 edition = "2021"
 readme = "README.md"

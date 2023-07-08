@@ -63,13 +63,13 @@ async fn main() -> Result<()> {
     }));
 
     let args = Arc::new(RwLock::new(Args::parse()));
-    let config = Arc::new(Config::load()?);
+    let config = Arc::new(RwLock::new(Config::load()?));
 
     // Poll the active window in a background task
     let args_task = args.clone();
     let config_task = config.clone();
     tokio::spawn(async move {
-        poll_active_window(args_task, &config_task).unwrap();
+        poll_active_window(args_task, config_task).unwrap();
     });
 
     // Create the system tray menu and add the MENU_ITEMS
@@ -88,9 +88,10 @@ async fn main() -> Result<()> {
             SystemTray::new().with_menu(
                 system_tray_menu
                     .add_native_item(SystemTrayMenuItem::Separator)
-                    .add_item(CustomMenuItem::new(String::from("pause"), "Pause"))
+                    .add_item(CustomMenuItem::new(String::from("pause"), "Pause Scanning"))
+                    .add_item(CustomMenuItem::new(String::from("reload"), "Reload Config"))
                     .add_native_item(SystemTrayMenuItem::Separator)
-                    .add_item(CustomMenuItem::new(String::from("quit"), "Quit")),
+                    .add_item(CustomMenuItem::new(String::from("quit"), "Quit Program")),
             ),
         )
         .on_system_tray_event(move |app, event| {
@@ -100,26 +101,34 @@ async fn main() -> Result<()> {
                     "quit" => {
                         std::process::exit(0);
                     }
+                    "reload" => {
+                        let mut config_write_lock = config_clone.write().unwrap();
+                        *config_write_lock = Config::load().expect("Failed to reload config");
+                    }
                     "pause" => {
                         let paused = args_clone.read().unwrap().paused;
-                        let title = if paused { "Pause" } else { "Resume" };
+                        let title = if paused {
+                            "Pause Scanning"
+                        } else {
+                            "Resume Scanning"
+                        };
                         args_clone.write().unwrap().paused = !paused;
                         item_handle.set_title(title).unwrap();
                     }
                     "digital" => {
-                        set_active_profile_index(0, config_clone.send_sleep_ms);
+                        set_active_profile_index(0, config_clone.read().unwrap().send_sleep_ms);
                         args_clone.write().unwrap().profile_index = Some(0);
                     }
                     "analog_1" => {
-                        set_active_profile_index(1, config_clone.send_sleep_ms);
+                        set_active_profile_index(1, config_clone.read().unwrap().send_sleep_ms);
                         args_clone.write().unwrap().profile_index = Some(1);
                     }
                     "analog_2" => {
-                        set_active_profile_index(2, config_clone.send_sleep_ms);
+                        set_active_profile_index(2, config_clone.read().unwrap().send_sleep_ms);
                         args_clone.write().unwrap().profile_index = Some(2);
                     }
                     "analog_3" => {
-                        set_active_profile_index(3, config_clone.send_sleep_ms);
+                        set_active_profile_index(3, config_clone.read().unwrap().send_sleep_ms);
                         args_clone.write().unwrap().profile_index = Some(3);
                     }
                     _ => {}
@@ -138,7 +147,7 @@ async fn main() -> Result<()> {
         let args_clone = args.clone();
         let config_clone = config.clone();
         tokio::spawn(async move {
-            poll_args_profile(args_clone, &config_clone, &app_clone);
+            poll_args_profile(args_clone, config_clone, &app_clone);
         });
     });
 
@@ -146,9 +155,9 @@ async fn main() -> Result<()> {
 }
 
 /// Poll the args for profile index and update the system tray menu
-fn poll_args_profile(args: Arc<RwLock<Args>>, config: &Config, app: &AppHandle) {
+fn poll_args_profile(args: Arc<RwLock<Args>>, config: Arc<RwLock<Config>>, app: &AppHandle) {
     loop {
-        std::thread::sleep(Duration::from_millis(config.loop_sleep_ms));
+        std::thread::sleep(Duration::from_millis(config.read().unwrap().loop_sleep_ms));
 
         if let Some(profile_index) = args.read().unwrap().profile_index {
             MENU_ITEMS.iter().enumerate().for_each(|(i, (id, _title))| {
@@ -162,7 +171,7 @@ fn poll_args_profile(args: Arc<RwLock<Args>>, config: &Config, app: &AppHandle) 
 }
 
 /// Poll the active window for matching rules and apply the profile
-fn poll_active_window(args: Arc<RwLock<Args>>, config: &Config) -> Result<()> {
+fn poll_active_window(args: Arc<RwLock<Args>>, config: Arc<RwLock<Config>>) -> Result<()> {
     let device_info = unsafe {
         if !wooting_rgb_kbd_connected() {
             println!("Keyboard not connected.");
@@ -174,7 +183,7 @@ fn poll_active_window(args: Arc<RwLock<Args>>, config: &Config) -> Result<()> {
     };
 
     if let Some(profile_index) = args.read().unwrap().profile_index {
-        set_active_profile_index(profile_index, config.send_sleep_ms);
+        set_active_profile_index(profile_index, config.read().unwrap().send_sleep_ms);
         return Ok(());
     }
 
@@ -183,7 +192,7 @@ fn poll_active_window(args: Arc<RwLock<Args>>, config: &Config) -> Result<()> {
     args.write().unwrap().profile_index = Some(last_profile_index);
 
     loop {
-        std::thread::sleep(Duration::from_millis(config.loop_sleep_ms));
+        std::thread::sleep(Duration::from_millis(config.read().unwrap().loop_sleep_ms));
 
         if args.read().unwrap().paused {
             continue;
@@ -216,10 +225,11 @@ fn poll_active_window(args: Arc<RwLock<Args>>, config: &Config) -> Result<()> {
         };
         println!("Active Process State: {active_process_state:#?}");
 
-        let profile_index = match find_match(active_process_state, &config.rules) {
+        let profile_index = match find_match(active_process_state, &config.read().unwrap().rules) {
             Some(profile_index) => profile_index,
             None => {
-                if let Some(fallback_profile_index) = config.fallback_profile_index {
+                if let Some(fallback_profile_index) = config.read().unwrap().fallback_profile_index
+                {
                     fallback_profile_index
                 } else {
                     continue;
@@ -234,7 +244,7 @@ fn poll_active_window(args: Arc<RwLock<Args>>, config: &Config) -> Result<()> {
         }
 
         println!("Process Profile Index: {}", profile_index);
-        set_active_profile_index(profile_index, config.send_sleep_ms);
+        set_active_profile_index(profile_index, config.read().unwrap().send_sleep_ms);
         args.write().unwrap().profile_index = Some(profile_index);
     }
 }

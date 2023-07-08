@@ -17,23 +17,39 @@ Automatically switch Wooting keyboard profiles based on focused window
 
 ## System Tray Icon
 
-The system tray icon allows you to pause/resume, quit, and set the active profile
+The system tray icon allows you to pause/resume, reload, quit, and set the active profile
 
 ## Configuration
 
-The config file is generated on first run with the following format
+The config file is generated on first-run in the following location and format
+
+| Platform | Location                                 |
+|----------|------------------------------------------|
+| Portable | Same location as the binary              |
+| Windows  | `C:\Users\...\AppData\Roaming`           |
+| macOS    | `/Users/.../Library/Application Support` |
+| Linux    | `/home/.../.config`                      |
 
 ```json
 {
+    // The fallback profile to use when no match is found (optional)
     "fallback_profile_index": null,
+    // Sleep duration for the loop checking the active window
     "loop_sleep_ms": 250,
+    // Sleep duration between sending Wooting USB commands
     "send_sleep_ms": 250,
+    // List of rule objects
     "rules": [
         {
+            // The official app name (optional)
             "app_name": null,
+            // The running process name (optional)
             "process_name": "Isaac",
+            // The running process path (optional)
             "process_path": null,
+            // The profile to switch to when a match is found for this rule (0-3)
             "profile_index": 1,
+            // The running window title (optional)
             "title": null
         },
         {
@@ -46,10 +62,6 @@ The config file is generated on first run with the following format
     ]
 }
 ```
-
-The `fallback_profile_index` variable allows you to set a fallback profile index to use when no match is found.  
-The `sleep_ms` variables allow you to customize the duration between checking the active process, and duration between sending Wooting USB commands.  
-The `rules` variable is a list of rules that supports [Wildcard] and [Regex] for `app_name`, `process_name`, `process_path` and `title` variables.
 
 ### Examples:
 
