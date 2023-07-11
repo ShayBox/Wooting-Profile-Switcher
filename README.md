@@ -30,7 +30,7 @@ The config file is generated on first-run in the following location and format
 | macOS    | `/Users/.../Library/Application Support` |
 | Linux    | `/home/.../.config`                      |
 
-```json
+```json5
 {
     // The fallback profile to use when no match is found (optional)
     "fallback_profile_index": null,
@@ -38,6 +38,8 @@ The config file is generated on first-run in the following location and format
     "loop_sleep_ms": 250,
     // Sleep duration between sending Wooting USB commands
     "send_sleep_ms": 250,
+    // Swap the lighting effects with the keyboard profile
+    "swap_lighting": true,
     // List of rule objects, all match rules support Wildcard and Regex
     "rules": [
         {
@@ -47,17 +49,17 @@ The config file is generated on first-run in the following location and format
             "process_name": "Isaac",
             // Match against the running process path (optional)
             "process_path": null,
-            // The profile to switch to when a match is found for this rule (0-3)
-            "profile_index": 1,
             // Match against the running window title (optional)
-            "title": null
+            "title": null,
+            // The profile to switch to when a match is found for this rule (0-3)
+            "profile_index": 1
         },
         {
             "app_name": null,
             "process_name": "isaac-ng.exe",
             "process_path": null,
-            "profile_index": 2,
-            "title": null
+            "title": null,
+            "profile_index": 2
         }
     ]
 }
@@ -67,25 +69,25 @@ The config file is generated on first-run in the following location and format
 
 #### Matching a window title with a date variable
 
-```json
+```json5
 {
     "app_name": null,
     "process_name": null,
     "process_path": null,
-    "profile_index": 0,
-    "title": "VRCX ????.??.??"
+    "title": "VRCX ????.??.??",
+    "profile_index": 0
 }
 ```
 
 #### Matching a window title with a version variable
 
-```json
+```json5
 {
     "app_name": null,
     "process_name": null,
     "process_path": null,
-    "profile_index": 0,
-    "title": "Minecraft [\d]+.[\d]+.[\d]+"
+    "title": "Minecraft [\d]+.[\d]+.[\d]+",
+    "profile_index": 0
 }
 ```
 

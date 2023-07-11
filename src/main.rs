@@ -7,7 +7,7 @@ use std::{
     time::Duration,
 };
 
-use active_win_pos_rs::{get_active_window, ActiveWindow};
+use active_win_pos_rs::ActiveWindow;
 use anyhow::Result;
 use clap::Parser;
 use regex::Regex;
@@ -21,8 +21,6 @@ use tauri::{
     SystemTrayMenuItem,
 };
 use wildflower::Pattern;
-use wooting_profile_switcher::{get_active_profile_index, set_active_profile_index};
-use wooting_rgb_sys::{wooting_rgb_device_info, wooting_rgb_kbd_connected, wooting_rgb_reset};
 
 use crate::config::{Config, Rule};
 
@@ -43,119 +41,142 @@ struct Args {
     #[arg(short, long)]
     profile_index: Option<u8>,
 
-    /// Pause the program by default.
+    /// Set the program to be paused by default.
     #[arg(long, default_value_t = false)]
     paused: bool,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Reset the keyboard if the program is killed
-    ctrlc::set_handler(move || unsafe {
-        wooting_rgb_reset();
-        std::process::exit(0);
-    })?;
-
     // Reset the keyboard if the program panics
     std::panic::set_hook(Box::new(|_| unsafe {
-        wooting_rgb_reset();
+        wooting_rgb_sys::wooting_rgb_reset();
         std::process::exit(0);
     }));
+
+    // Reset the keyboard if the program is killed/terminated
+    ctrlc::set_handler(move || unsafe {
+        wooting_rgb_sys::wooting_rgb_reset();
+        std::process::exit(0);
+    })?;
 
     let args = Arc::new(RwLock::new(Args::parse()));
     let config = Arc::new(RwLock::new(Config::load()?));
 
-    // Poll the active window in a background task
-    let args_task = args.clone();
-    let config_task = config.clone();
-    tokio::spawn(async move {
-        poll_active_window(args_task, config_task).unwrap();
-    });
+    let mut app_builder = Builder::default();
 
-    // Create the system tray menu and add the MENU_ITEMS
-    let args_clone = args.clone();
-    let config_clone = config.clone();
-    let mut system_tray_menu = SystemTrayMenu::new();
-    for (id, title) in MENU_ITEMS {
-        let menu_item = CustomMenuItem::new(String::from(id), title).selected();
-        system_tray_menu = system_tray_menu.add_item(menu_item);
+    {
+        let args = args.clone();
+        let config = config.clone();
+
+        let mut system_tray_menu = SystemTrayMenu::new();
+        for (id, title) in MENU_ITEMS {
+            let menu_item = CustomMenuItem::new(String::from(id), title).selected();
+            system_tray_menu = system_tray_menu.add_item(menu_item);
+        }
+
+        system_tray_menu = system_tray_menu
+            .add_native_item(SystemTrayMenuItem::Separator)
+            .add_item(CustomMenuItem::new(String::from("pause"), "Pause Scanning"))
+            .add_item(CustomMenuItem::new(String::from("reload"), "Reload Config"))
+            .add_native_item(SystemTrayMenuItem::Separator)
+            .add_item(CustomMenuItem::new(String::from("quit"), "Quit Program"));
+
+        app_builder = app_builder
+            .system_tray(SystemTray::new().with_menu(system_tray_menu))
+            .on_system_tray_event(move |app, event| {
+                if let SystemTrayEvent::MenuItemClick { id, .. } = event {
+                    let item_handle = app.tray_handle().get_item(&id);
+                    match id.as_str() {
+                        "quit" => {
+                            std::process::exit(0);
+                        }
+                        "reload" => {
+                            let mut config_write_lock = config.write().unwrap();
+                            *config_write_lock = Config::load().expect("Failed to reload config");
+                        }
+                        "pause" => {
+                            let paused = args.read().unwrap().paused;
+                            let title = if paused {
+                                "Pause Scanning"
+                            } else {
+                                "Resume Scanning"
+                            };
+                            args.write().unwrap().paused = !paused;
+                            item_handle.set_title(title).unwrap();
+                        }
+                        "digital" => {
+                            wooting_profile_switcher::set_active_profile_index(
+                                0,
+                                config.read().unwrap().send_sleep_ms,
+                                config.read().unwrap().swap_lighting,
+                            );
+                            args.write().unwrap().profile_index = Some(0);
+                        }
+                        "analog_1" => {
+                            wooting_profile_switcher::set_active_profile_index(
+                                1,
+                                config.read().unwrap().send_sleep_ms,
+                                config.read().unwrap().swap_lighting,
+                            );
+                            args.write().unwrap().profile_index = Some(1);
+                        }
+                        "analog_2" => {
+                            wooting_profile_switcher::set_active_profile_index(
+                                2,
+                                config.read().unwrap().send_sleep_ms,
+                                config.read().unwrap().swap_lighting,
+                            );
+                            args.write().unwrap().profile_index = Some(2);
+                        }
+                        "analog_3" => {
+                            wooting_profile_switcher::set_active_profile_index(
+                                3,
+                                config.read().unwrap().send_sleep_ms,
+                                config.read().unwrap().swap_lighting,
+                            );
+                            args.write().unwrap().profile_index = Some(3);
+                        }
+                        _ => {}
+                    }
+                }
+            });
     }
 
-    // Create the Tauri app and add the system tray menu
     #[cfg_attr(not(target_os = "macos"), allow(unused_mut))]
-    let mut app = Builder::default()
-        .system_tray(
-            SystemTray::new().with_menu(
-                system_tray_menu
-                    .add_native_item(SystemTrayMenuItem::Separator)
-                    .add_item(CustomMenuItem::new(String::from("pause"), "Pause Scanning"))
-                    .add_item(CustomMenuItem::new(String::from("reload"), "Reload Config"))
-                    .add_native_item(SystemTrayMenuItem::Separator)
-                    .add_item(CustomMenuItem::new(String::from("quit"), "Quit Program")),
-            ),
-        )
-        .on_system_tray_event(move |app, event| {
-            if let SystemTrayEvent::MenuItemClick { id, .. } = event {
-                let item_handle = app.tray_handle().get_item(&id);
-                match id.as_str() {
-                    "quit" => {
-                        std::process::exit(0);
-                    }
-                    "reload" => {
-                        let mut config_write_lock = config_clone.write().unwrap();
-                        *config_write_lock = Config::load().expect("Failed to reload config");
-                    }
-                    "pause" => {
-                        let paused = args_clone.read().unwrap().paused;
-                        let title = if paused {
-                            "Pause Scanning"
-                        } else {
-                            "Resume Scanning"
-                        };
-                        args_clone.write().unwrap().paused = !paused;
-                        item_handle.set_title(title).unwrap();
-                    }
-                    "digital" => {
-                        set_active_profile_index(0, config_clone.read().unwrap().send_sleep_ms);
-                        args_clone.write().unwrap().profile_index = Some(0);
-                    }
-                    "analog_1" => {
-                        set_active_profile_index(1, config_clone.read().unwrap().send_sleep_ms);
-                        args_clone.write().unwrap().profile_index = Some(1);
-                    }
-                    "analog_2" => {
-                        set_active_profile_index(2, config_clone.read().unwrap().send_sleep_ms);
-                        args_clone.write().unwrap().profile_index = Some(2);
-                    }
-                    "analog_3" => {
-                        set_active_profile_index(3, config_clone.read().unwrap().send_sleep_ms);
-                        args_clone.write().unwrap().profile_index = Some(3);
-                    }
-                    _ => {}
-                }
-            }
-        })
-        .build(tauri::generate_context!())?;
+    let mut app = app_builder.build(tauri::generate_context!())?;
 
     #[cfg(target_os = "macos")] // Hide the macOS dock icon
     app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
-    // Run the Tauri app
-    app.run(move |app, _event| {
-        // Poll the args in a background task
-        let app_clone = app.clone();
-        let args_clone = args.clone();
-        let config_clone = config.clone();
+    {
+        // Start polling for a new active window in a background task
+        let args = args.clone();
+        let config = config.clone();
         tokio::spawn(async move {
-            poll_args_profile(args_clone, config_clone, &app_clone);
+            poll_system_active_window_task(args, config).unwrap();
+        });
+    }
+
+    app.run(move |app, _event| {
+        // Start polling for a new active profile in a background task
+        let app = app.clone();
+        let args = args.clone();
+        let config = config.clone();
+        tokio::spawn(async move {
+            poll_args_active_profile_task(args, config, &app).unwrap();
         });
     });
 
     Ok(())
 }
 
-/// Poll the args for profile index and update the system tray menu
-fn poll_args_profile(args: Arc<RwLock<Args>>, config: Arc<RwLock<Config>>, app: &AppHandle) {
+/// Poll args for a new active profile and update the selected tauri system tray menu item
+fn poll_args_active_profile_task(
+    args: Arc<RwLock<Args>>,
+    config: Arc<RwLock<Config>>,
+    app: &AppHandle,
+) -> Result<()> {
     loop {
         std::thread::sleep(Duration::from_millis(config.read().unwrap().loop_sleep_ms));
 
@@ -170,25 +191,25 @@ fn poll_args_profile(args: Arc<RwLock<Args>>, config: Arc<RwLock<Config>>, app: 
     }
 }
 
-/// Poll the active window for matching rules and apply the profile
-fn poll_active_window(args: Arc<RwLock<Args>>, config: Arc<RwLock<Config>>) -> Result<()> {
-    let device_info = unsafe {
-        if !wooting_rgb_kbd_connected() {
-            println!("Keyboard not connected.");
-            std::process::exit(1)
-        }
-
-        wooting_rgb_reset();
-        *wooting_rgb_device_info()
-    };
+/// Poll system for a new active window, find a matching rule, and update the keyboard active profile index
+fn poll_system_active_window_task(
+    args: Arc<RwLock<Args>>,
+    config: Arc<RwLock<Config>>,
+) -> Result<()> {
+    let wooting_usb_meta = wooting_profile_switcher::get_wooting_usb_meta();
 
     if let Some(profile_index) = args.read().unwrap().profile_index {
-        set_active_profile_index(profile_index, config.read().unwrap().send_sleep_ms);
+        wooting_profile_switcher::set_active_profile_index(
+            profile_index,
+            config.read().unwrap().send_sleep_ms,
+            config.read().unwrap().swap_lighting,
+        );
         return Ok(());
     }
 
     let mut last_active_window: ActiveWindow = Default::default();
-    let mut last_profile_index = get_active_profile_index(device_info);
+    let mut last_profile_index =
+        wooting_profile_switcher::get_active_profile_index(wooting_usb_meta);
     args.write().unwrap().profile_index = Some(last_profile_index);
 
     loop {
@@ -198,7 +219,7 @@ fn poll_active_window(args: Arc<RwLock<Args>>, config: Arc<RwLock<Config>>) -> R
             continue;
         }
 
-        let Ok(active_window) = get_active_window() else {
+        let Ok(active_window) = active_win_pos_rs::get_active_window() else {
             continue;
         };
 
@@ -244,7 +265,11 @@ fn poll_active_window(args: Arc<RwLock<Args>>, config: Arc<RwLock<Config>>) -> R
         }
 
         println!("Process Profile Index: {}", profile_index);
-        set_active_profile_index(profile_index, config.read().unwrap().send_sleep_ms);
+        wooting_profile_switcher::set_active_profile_index(
+            profile_index,
+            config.read().unwrap().send_sleep_ms,
+            config.read().unwrap().swap_lighting,
+        );
         args.write().unwrap().profile_index = Some(profile_index);
     }
 }
