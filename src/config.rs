@@ -9,30 +9,22 @@ use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default)]
 pub struct Rule {
-    #[serde(default)]
     pub app_name: Option<String>,
-    #[serde(default)]
     pub process_name: Option<String>,
-    #[serde(default)]
     pub process_path: Option<String>,
-    #[serde(default)]
     pub title: Option<String>,
-    #[serde(default)]
     pub profile_index: u8,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default)]
 pub struct Config {
-    #[serde(default)]
     pub fallback_profile_index: Option<u8>,
-    #[serde(default)]
     pub loop_sleep_ms: u64,
-    #[serde(default)]
     pub send_sleep_ms: u64,
-    #[serde(default)]
     pub swap_lighting: bool,
-    #[serde(default)]
     pub rules: Vec<Rule>,
 }
 

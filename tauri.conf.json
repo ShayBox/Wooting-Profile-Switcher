@@ -1,14 +1,14 @@
 {
     "build": {
-        "beforeDevCommand": "",
         "beforeBuildCommand": "",
+        "beforeDevCommand": "",
         "devPath": "./src",
         "distDir": "./src",
         "withGlobalTauri": true
     },
     "package": {
         "productName": "WootingProfileSwitcher",
-        "version": "1.6.0"
+        "version": "1.7.0"
     },
     "tauri": {
         "allowlist": {
@@ -20,33 +20,33 @@
         },
         "bundle": {
             "active": true,
-            "targets": "all",
-            "identifier": "com.shaybox.wooting-profile-switcher",
             "icon": [
                 "icons/32x32.png",
                 "icons/128x128.png",
                 "icons/128x128@2x.png",
                 "icons/icon.icns",
                 "icons/icon.ico"
-            ]
+            ],
+            "identifier": "com.shaybox.wooting-profile-switcher",
+            "targets": "all"
         },
         "security": {
             "csp": null
         },
+        "systemTray": {
+            "iconAsTemplate": true,
+            "iconPath": "icons/icon.png"
+        },
         "updater": {
             "active": true,
+            "dialog": true,
             "endpoints": [
                 "https://github.com/ShayBox/WootingProfileSwitcher/releases/latest/download/latest.json"
             ],
-            "dialog": true,
             "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhCMTZBMEZBOEQ0NDNCQUEKUldTcU8wU04rcUFXaXlVdEhyWG9ZRi9vUGNPekVMWmVOL2dMcG40dEpXUzUwdkxkczVBU2JaOWwK",
             "windows": {
                 "installMode": "basicUi"
             }
-        },
-        "systemTray": {
-            "iconPath": "icons/icon.png",
-            "iconAsTemplate": true
         }
     }
 }

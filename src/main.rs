@@ -1,36 +1,36 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{
-    ffi::OsStr,
-    sync::{Arc, RwLock},
-    time::Duration,
-};
+use std::{ffi::OsStr, sync::Arc, time::Duration};
 
 use active_win_pos_rs::ActiveWindow;
 use anyhow::Result;
 use clap::Parser;
+use parking_lot::RwLock;
 use regex::Regex;
 use tauri::{
     AppHandle,
     Builder,
     CustomMenuItem,
+    Manager,
+    RunEvent,
     SystemTray,
     SystemTrayEvent,
     SystemTrayMenu,
     SystemTrayMenuItem,
 };
 use wildflower::Pattern;
+use wooting_profile_switcher as wps;
 
 use crate::config::{Config, Rule};
 
 mod config;
 
-const MENU_ITEMS: [(&str, &str); 4] = [
-    ("digital", "Digital"),
-    ("analog_1", "Analog 1"),
-    ("analog_2", "Analog 2"),
-    ("analog_3", "Analog 3"),
+const MENU_ITEMS: [&str; 4] = [
+    "Digital Profile",
+    "Analog Profile 1",
+    "Analog Profile 2",
+    "Analog Profile 3",
 ];
 
 #[derive(Debug, Parser)]
@@ -46,8 +46,7 @@ struct Args {
     paused: bool,
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     // Reset the keyboard if the program panics
     std::panic::set_hook(Box::new(|_| unsafe {
         wooting_rgb_sys::wooting_rgb_reset();
@@ -60,162 +59,120 @@ async fn main() -> Result<()> {
         std::process::exit(0);
     })?;
 
-    let args = Arc::new(RwLock::new(Args::parse()));
-    let config = Arc::new(RwLock::new(Config::load()?));
+    Builder::default()
+        .system_tray(SystemTray::new())
+        .setup(|app| {
+            #[cfg(target_os = "macos")] // Hide the macOS dock icon
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            app.manage(RwLock::new(Args::parse()));
+            app.manage(RwLock::new(Config::load()?));
 
-    let mut app_builder = Builder::default();
+            let args = app.state::<RwLock<Args>>();
+            let config = app.state::<RwLock<Config>>();
 
-    {
-        let args = args.clone();
-        let config = config.clone();
+            if let Some(profile_index) = args.read().profile_index {
+                wps::set_active_profile_index(
+                    profile_index,
+                    config.read().send_sleep_ms,
+                    config.read().swap_lighting,
+                );
+                std::process::exit(0);
+            }
 
-        let mut system_tray_menu = SystemTrayMenu::new();
-        for (id, title) in MENU_ITEMS {
-            let menu_item = CustomMenuItem::new(String::from(id), title).selected();
-            system_tray_menu = system_tray_menu.add_item(menu_item);
-        }
+            let tray_handle = app.tray_handle();
+            let mut system_tray_menu = SystemTrayMenu::new();
 
-        system_tray_menu = system_tray_menu
-            .add_native_item(SystemTrayMenuItem::Separator)
-            .add_item(CustomMenuItem::new(String::from("pause"), "Pause Scanning"))
-            .add_item(CustomMenuItem::new(String::from("reload"), "Reload Config"))
-            .add_native_item(SystemTrayMenuItem::Separator)
-            .add_item(CustomMenuItem::new(String::from("quit"), "Quit Program"));
+            for (i, title) in MENU_ITEMS.into_iter().enumerate() {
+                let id = &i.to_string();
+                let menu_item = CustomMenuItem::new(id, title).selected();
+                system_tray_menu = system_tray_menu.add_item(menu_item);
+            }
 
-        app_builder = app_builder
-            .system_tray(SystemTray::new().with_menu(system_tray_menu))
-            .on_system_tray_event(move |app, event| {
-                if let SystemTrayEvent::MenuItemClick { id, .. } = event {
-                    let item_handle = app.tray_handle().get_item(&id);
-                    match id.as_str() {
-                        "quit" => {
-                            std::process::exit(0);
-                        }
-                        "reload" => {
-                            let mut config_write_lock = config.write().unwrap();
-                            *config_write_lock = Config::load().expect("Failed to reload config");
-                        }
-                        "pause" => {
-                            let paused = args.read().unwrap().paused;
-                            let title = if paused {
-                                "Pause Scanning"
-                            } else {
-                                "Resume Scanning"
-                            };
-                            args.write().unwrap().paused = !paused;
-                            item_handle.set_title(title).unwrap();
-                        }
-                        "digital" => {
-                            wooting_profile_switcher::set_active_profile_index(
-                                0,
-                                config.read().unwrap().send_sleep_ms,
-                                config.read().unwrap().swap_lighting,
+            system_tray_menu = system_tray_menu
+                .add_native_item(SystemTrayMenuItem::Separator)
+                .add_item(CustomMenuItem::new(String::from("pause"), "Pause Scanning"))
+                .add_item(CustomMenuItem::new(String::from("reload"), "Reload Config"))
+                .add_native_item(SystemTrayMenuItem::Separator)
+                .add_item(CustomMenuItem::new(String::from("quit"), "Quit Program"));
+
+            tray_handle.set_menu(system_tray_menu)?;
+
+            Ok(())
+        })
+        .on_system_tray_event(move |app, event| {
+            let args = app.state::<RwLock<Args>>();
+            let config = app.state::<RwLock<Config>>();
+            if let SystemTrayEvent::MenuItemClick { id, .. } = event {
+                match id.as_str() {
+                    "quit" => {
+                        app.exit(0);
+                    }
+                    "reload" => {
+                        *config.write() = Config::load().expect("Failed to reload config");
+                    }
+                    "pause" => {
+                        let paused = args.read().paused;
+                        let title = if paused {
+                            "Pause Scanning"
+                        } else {
+                            "Resume Scanning"
+                        };
+                        args.write().paused = !paused;
+
+                        let tray_handle = app.tray_handle();
+                        let item_handle = tray_handle.get_item(&id);
+                        item_handle.set_title(title).unwrap();
+                    }
+                    _ => {
+                        if let Ok(profile_index) = id.parse::<u8>() {
+                            args.write().profile_index = Some(profile_index);
+                            wps::set_active_profile_index(
+                                profile_index,
+                                config.read().send_sleep_ms,
+                                config.read().swap_lighting,
                             );
-                            args.write().unwrap().profile_index = Some(0);
                         }
-                        "analog_1" => {
-                            wooting_profile_switcher::set_active_profile_index(
-                                1,
-                                config.read().unwrap().send_sleep_ms,
-                                config.read().unwrap().swap_lighting,
-                            );
-                            args.write().unwrap().profile_index = Some(1);
-                        }
-                        "analog_2" => {
-                            wooting_profile_switcher::set_active_profile_index(
-                                2,
-                                config.read().unwrap().send_sleep_ms,
-                                config.read().unwrap().swap_lighting,
-                            );
-                            args.write().unwrap().profile_index = Some(2);
-                        }
-                        "analog_3" => {
-                            wooting_profile_switcher::set_active_profile_index(
-                                3,
-                                config.read().unwrap().send_sleep_ms,
-                                config.read().unwrap().swap_lighting,
-                            );
-                            args.write().unwrap().profile_index = Some(3);
-                        }
-                        _ => {}
                     }
                 }
-            });
-    }
-
-    #[cfg_attr(not(target_os = "macos"), allow(unused_mut))]
-    let mut app = app_builder.build(tauri::generate_context!())?;
-
-    #[cfg(target_os = "macos")] // Hide the macOS dock icon
-    app.set_activation_policy(tauri::ActivationPolicy::Accessory);
-
-    {
-        // Start polling for a new active window in a background task
-        let args = args.clone();
-        let config = config.clone();
-        tokio::spawn(async move {
-            poll_system_active_window_task(args, config).unwrap();
+            }
+        })
+        .build(tauri::generate_context!())?
+        .run(move |app, event| {
+            if let RunEvent::Ready = event {
+                let app = app.clone();
+                std::thread::spawn(move || {
+                    active_window_polling_task(app).unwrap();
+                });
+            }
         });
-    }
-
-    app.run(move |app, _event| {
-        // Start polling for a new active profile in a background task
-        let app = app.clone();
-        let args = args.clone();
-        let config = config.clone();
-        tokio::spawn(async move {
-            poll_args_active_profile_task(args, config, &app).unwrap();
-        });
-    });
 
     Ok(())
 }
 
-/// Poll args for a new active profile and update the selected tauri system tray menu item
-fn poll_args_active_profile_task(
-    args: Arc<RwLock<Args>>,
-    config: Arc<RwLock<Config>>,
-    app: &AppHandle,
-) -> Result<()> {
-    loop {
-        std::thread::sleep(Duration::from_millis(config.read().unwrap().loop_sleep_ms));
-
-        if let Some(profile_index) = args.read().unwrap().profile_index {
-            MENU_ITEMS.iter().enumerate().for_each(|(i, (id, _title))| {
-                let item_handle = app.tray_handle().get_item(id);
-                item_handle
-                    .set_selected(i == profile_index as usize)
-                    .unwrap();
-            })
-        }
-    }
-}
-
-/// Poll system for a new active window, find a matching rule, and update the keyboard active profile index
-fn poll_system_active_window_task(
-    args: Arc<RwLock<Args>>,
-    config: Arc<RwLock<Config>>,
-) -> Result<()> {
-    let wooting_usb_meta = wooting_profile_switcher::get_wooting_usb_meta();
-
-    if let Some(profile_index) = args.read().unwrap().profile_index {
-        wooting_profile_switcher::set_active_profile_index(
-            profile_index,
-            config.read().unwrap().send_sleep_ms,
-            config.read().unwrap().swap_lighting,
-        );
-        return Ok(());
-    }
+/// Polls the active window to matching rules and applies the keyboard profile
+fn active_window_polling_task(app: AppHandle) -> Result<()> {
+    let args = app.state::<RwLock<Args>>();
+    let config = app.state::<RwLock<Config>>();
+    let wooting_usb_meta = wps::get_wooting_usb_meta();
 
     let mut last_active_window: ActiveWindow = Default::default();
-    let mut last_profile_index =
-        wooting_profile_switcher::get_active_profile_index(wooting_usb_meta);
-    args.write().unwrap().profile_index = Some(last_profile_index);
+    let mut last_profile_index = wps::get_active_profile_index(wooting_usb_meta);
+    args.write().profile_index = Some(last_profile_index);
 
     loop {
-        std::thread::sleep(Duration::from_millis(config.read().unwrap().loop_sleep_ms));
+        std::thread::sleep(Duration::from_millis(config.read().loop_sleep_ms));
 
-        if args.read().unwrap().paused {
+        // Update the selected profile system tray menu item
+        if let Some(profile_index) = args.read().profile_index {
+            for i in 0..MENU_ITEMS.len() {
+                let id = &i.to_string();
+                let tray_handle = app.tray_handle();
+                let item_handle = tray_handle.get_item(id);
+                let _ = item_handle.set_selected(i == profile_index as usize);
+            }
+        }
+
+        if args.read().paused {
             continue;
         }
 
@@ -246,11 +203,10 @@ fn poll_system_active_window_task(
         };
         println!("Active Process State: {active_process_state:#?}");
 
-        let profile_index = match find_match(active_process_state, &config.read().unwrap().rules) {
+        let profile_index = match find_match(active_process_state, &config.read().rules) {
             Some(profile_index) => profile_index,
             None => {
-                if let Some(fallback_profile_index) = config.read().unwrap().fallback_profile_index
-                {
+                if let Some(fallback_profile_index) = config.read().fallback_profile_index {
                     fallback_profile_index
                 } else {
                     continue;
@@ -265,12 +221,12 @@ fn poll_system_active_window_task(
         }
 
         println!("Process Profile Index: {}", profile_index);
-        wooting_profile_switcher::set_active_profile_index(
+        wps::set_active_profile_index(
             profile_index,
-            config.read().unwrap().send_sleep_ms,
-            config.read().unwrap().swap_lighting,
+            config.read().send_sleep_ms,
+            config.read().swap_lighting,
         );
-        args.write().unwrap().profile_index = Some(profile_index);
+        args.write().profile_index = Some(profile_index);
     }
 }
 

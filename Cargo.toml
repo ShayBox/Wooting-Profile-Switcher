@@ -1,7 +1,7 @@
 [package]
 name = "wooting-profile-switcher"
-description = "WootingProfileSwitcher" # Tauri uses this as the official app name for some reason
-version = "1.6.0"
+description = "WootingProfileSwitcher"
+version = "1.7.0"
 authors = ["Shayne Hartford <shaybox@shaybox.com>"]
 edition = "2021"
 readme = "README.md"
@@ -16,14 +16,14 @@ tauri-build = "1.4"
 [dependencies]
 active-win-pos-rs = "0.8"
 anyhow = "1"
-clap = { version = "4.3", features = ["derive"] }
-ctrlc = { version = "3.4", features = ["termination"] }
-dirs = "5.0"
-regex = "1.8"
+clap = { version = "4", features = ["derive"] }
+ctrlc = { version = "3", features = ["termination"] }
+dirs = "5"
+parking_lot = "0.12"
+regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tauri = { version = "1.4", features = ["shell-open", "updater", "system-tray"] }
-tokio = { version = "1.29", features = ["macros"] }
+tauri = { version = "1", features = ["shell-open", "updater", "system-tray"] }
 wildflower = "0.3"
 wooting-rgb-sys = "0.2"
 
@@ -35,6 +35,6 @@ custom-protocol = ["tauri/custom-protocol"]
 # https://tauri.app/v1/guides/building/app-size/#rust-build-time-optimizations
 [profile.release]
 codegen-units = 1 # Compile crates one after another so the compiler can optimize better
-lto = true # Enables link to optimizations
-opt-level = "s" # Optimize for binary size
-strip = true # Remove debug symbols
+lto = true        # Enables link to optimizations
+opt-level = "s"   # Optimize for binary size
+strip = true      # Remove debug symbols
