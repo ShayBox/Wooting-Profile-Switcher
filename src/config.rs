@@ -25,6 +25,7 @@ pub struct Config {
     pub loop_sleep_ms: u64,
     pub send_sleep_ms: u64,
     pub swap_lighting: bool,
+    pub profiles: Vec<String>,
     pub rules: Vec<Rule>,
 }
 
@@ -35,6 +36,12 @@ impl Default for Config {
             loop_sleep_ms: 250,
             send_sleep_ms: 250,
             swap_lighting: true,
+            profiles: vec![
+                String::from("Typing Profile"),
+                String::from("Rapid Profile"),
+                String::from("Racing Profile"),
+                String::from("Mixed Movement"),
+            ],
             rules: vec![
                 Rule {
                     app_name: None,

@@ -24,7 +24,7 @@ The system tray icon allows you to pause/resume, reload, quit, and set the activ
 The config file is generated on first-run in the following location and format
 
 | Platform | Location                                 |
-|----------|------------------------------------------|
+| -------- | ---------------------------------------- |
 | Portable | Same location as the binary              |
 | Windows  | `C:\Users\...\AppData\Roaming`           |
 | macOS    | `/Users/.../Library/Application Support` |
@@ -40,6 +40,13 @@ The config file is generated on first-run in the following location and format
     "send_sleep_ms": 250,
     // Swap the lighting effects with the keyboard profile
     "swap_lighting": true,
+    // List of profile names, pulled from Wootility
+    "profiles" [
+      "Typing Profile",
+      "Rapid Profile",
+      "Racing Profile",
+      "Mixed Movement",
+    ],
     // List of rule objects, all match rules support Wildcard and Regex
     "rules": [
         {

@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{ffi::OsStr, sync::Arc, time::Duration};
+use std::{ffi::OsStr, time::Duration};
 
 use active_win_pos_rs::ActiveWindow;
 use anyhow::Result;
@@ -20,18 +20,13 @@ use tauri::{
     SystemTrayMenuItem,
 };
 use wildflower::Pattern;
+use wootility::Wootility;
 use wooting_profile_switcher as wps;
 
 use crate::config::{Config, Rule};
 
 mod config;
-
-const MENU_ITEMS: [&str; 4] = [
-    "Digital Profile",
-    "Analog Profile 1",
-    "Analog Profile 2",
-    "Analog Profile 3",
-];
+mod wootility;
 
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
@@ -79,10 +74,20 @@ fn main() -> Result<()> {
                 std::process::exit(0);
             }
 
+            // Load active profile names from Wootility
+            if let Ok(wootility) = Wootility::load() {
+                config.write().profiles = wootility
+                    .profiles
+                    .device
+                    .into_iter()
+                    .map(|device| device.details.name)
+                    .collect();
+            }
+
             let tray_handle = app.tray_handle();
             let mut system_tray_menu = SystemTrayMenu::new();
 
-            for (i, title) in MENU_ITEMS.into_iter().enumerate() {
+            for (i, title) in config.read().profiles.iter().enumerate() {
                 let id = &i.to_string();
                 let menu_item = CustomMenuItem::new(id, title).selected();
                 system_tray_menu = system_tray_menu.add_item(menu_item);
@@ -164,7 +169,7 @@ fn active_window_polling_task(app: AppHandle) -> Result<()> {
 
         // Update the selected profile system tray menu item
         if let Some(profile_index) = args.read().profile_index {
-            for i in 0..MENU_ITEMS.len() {
+            for i in 0..config.read().profiles.len() {
                 let id = &i.to_string();
                 let tray_handle = app.tray_handle();
                 let item_handle = tray_handle.get_item(id);
