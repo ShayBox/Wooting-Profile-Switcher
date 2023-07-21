@@ -5,6 +5,7 @@ use std::{ffi::OsStr, time::Duration};
 
 use active_win_pos_rs::ActiveWindow;
 use anyhow::Result;
+use app::MainApp;
 use clap::Parser;
 use parking_lot::RwLock;
 use regex::Regex;
@@ -19,12 +20,14 @@ use tauri::{
     SystemTrayMenu,
     SystemTrayMenuItem,
 };
+use tauri_egui::EguiPluginBuilder;
 use wildflower::Pattern;
 use wootility::Wootility;
 use wooting_profile_switcher as wps;
 
 use crate::config::{Config, Rule};
 
+mod app;
 mod config;
 mod wootility;
 
@@ -59,6 +62,7 @@ fn main() -> Result<()> {
         .setup(|app| {
             #[cfg(target_os = "macos")] // Hide the macOS dock icon
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            app.wry_plugin(EguiPluginBuilder::new(app.handle()));
             app.manage(RwLock::new(Args::parse()));
             app.manage(RwLock::new(Config::load()?));
 
@@ -76,12 +80,14 @@ fn main() -> Result<()> {
 
             // Load active profile names from Wootility
             if let Ok(wootility) = Wootility::load() {
-                config.write().profiles = wootility
+                let mut config = config.write();
+                config.profiles = wootility
                     .profiles
                     .device
                     .into_iter()
                     .map(|device| device.details.name)
                     .collect();
+                config.save()?;
             }
 
             let tray_handle = app.tray_handle();
@@ -107,8 +113,11 @@ fn main() -> Result<()> {
         .on_system_tray_event(move |app, event| {
             let args = app.state::<RwLock<Args>>();
             let config = app.state::<RwLock<Config>>();
-            if let SystemTrayEvent::MenuItemClick { id, .. } = event {
-                match id.as_str() {
+            match event {
+                SystemTrayEvent::LeftClick { .. } => {
+                    MainApp::open(app).expect("Failed to open main app");
+                }
+                SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
                     "quit" => {
                         app.exit(0);
                     }
@@ -138,7 +147,8 @@ fn main() -> Result<()> {
                             );
                         }
                     }
-                }
+                },
+                _ => {}
             }
         })
         .build(tauri::generate_context!())?
@@ -191,24 +201,8 @@ fn active_window_polling_task(app: AppHandle) -> Result<()> {
             last_active_window = active_window.to_owned();
         }
 
-        let Some(active_process_name) = active_window
-            .process_path
-            .file_name()
-            .and_then(OsStr::to_str)
-        else {
-            continue;
-        };
-
-        let active_process_state = Rule {
-            app_name: Some(active_window.app_name),
-            process_name: Some(active_process_name.to_string()),
-            process_path: Some(active_window.process_path.display().to_string()),
-            profile_index: last_profile_index,
-            title: Some(active_window.title),
-        };
-        println!("Active Process State: {active_process_state:#?}");
-
-        let profile_index = match find_match(active_process_state, &config.read().rules) {
+        let rules = config.read().rules.clone();
+        let profile_index = match find_match(active_window, rules) {
             Some(profile_index) => profile_index,
             None => {
                 if let Some(fallback_profile_index) = config.read().fallback_profile_index {
@@ -225,7 +219,7 @@ fn active_window_polling_task(app: AppHandle) -> Result<()> {
             last_profile_index = profile_index;
         }
 
-        println!("Process Profile Index: {}", profile_index);
+        println!("Updated Profile Index: {}", profile_index);
         wps::set_active_profile_index(
             profile_index,
             config.read().send_sleep_ms,
@@ -235,39 +229,37 @@ fn active_window_polling_task(app: AppHandle) -> Result<()> {
     }
 }
 
-/// Find a matching rule for the active process using Wildcard and Regex
-fn find_match(active_process_state: Rule, rules: &[Rule]) -> Option<u8> {
-    type RulePropFn = Box<dyn Fn(&Rule) -> Option<&String>>;
+/// Find the first matching profile index for the given active window
+fn find_match(active_window: ActiveWindow, rules: Vec<Rule>) -> Option<u8> {
+    type RulePropFn = fn(Rule) -> Option<String>;
 
-    let active_state_props: Vec<(Option<String>, RulePropFn)> = vec![
-        (
-            active_process_state.app_name,
-            Box::new(|rule| rule.app_name.as_ref()),
-        ),
-        (
-            active_process_state.process_name,
-            Box::new(|rule| rule.process_name.as_ref()),
-        ),
-        (
-            active_process_state.process_path,
-            Box::new(|rule| rule.process_path.as_ref()),
-        ),
-        (
-            active_process_state.title,
-            Box::new(|rule| rule.title.as_ref()),
-        ),
+    let active_window_bin_path = active_window.process_path.display().to_string();
+    let active_window_bin_name = active_window
+        .process_path
+        .file_name()
+        .and_then(OsStr::to_str)
+        .map(String::from)
+        .unwrap_or_default();
+
+    println!("Updated Active Window:");
+    println!("- App Name: {}", active_window.app_name);
+    println!("- Bin Name: {}", active_window_bin_name);
+    println!("- Bin Path: {}", active_window_bin_path);
+    println!("- Win Name: {}", active_window.title);
+
+    let match_active_window: Vec<(RulePropFn, String)> = vec![
+        (|rule| rule.match_app_name, active_window.app_name),
+        (|rule| rule.match_bin_name, active_window_bin_name),
+        (|rule| rule.match_bin_path, active_window_bin_path),
+        (|rule| rule.match_win_name, active_window.title),
     ];
 
-    for (active_prop, rule_prop_fn) in active_state_props {
-        let Some(active_prop) = active_prop else {
-            continue;
-        };
-
-        let Some(rule) = rules.iter().find(|rule| {
-            if let Some(rule_prop) = rule_prop_fn(rule) {
-                if Pattern::new(rule_prop).matches(&active_prop) {
+    for (rule_prop_fn, active_prop) in match_active_window {
+        if let Some(rule) = rules.iter().cloned().find(|rule| {
+            if let Some(rule_prop) = rule_prop_fn(rule.clone()) {
+                if Pattern::new(&rule_prop).matches(&active_prop) {
                     true
-                } else if let Ok(re) = Regex::new(rule_prop) {
+                } else if let Ok(re) = Regex::new(&rule_prop) {
                     re.is_match(&active_prop)
                 } else {
                     false
@@ -275,11 +267,9 @@ fn find_match(active_process_state: Rule, rules: &[Rule]) -> Option<u8> {
             } else {
                 false
             }
-        }) else {
-            continue;
-        };
-
-        return Some(rule.profile_index);
+        }) {
+            return Some(rule.profile_index);
+        }
     }
 
     None

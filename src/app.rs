@@ -1,0 +1,366 @@
+use egui_extras::{Size, TableBuilder};
+use image::DynamicImage;
+use parking_lot::RwLock;
+use tauri::{AppHandle, Manager};
+use tauri_egui::{
+    eframe::{App, CreationContext, Frame, IconData, NativeOptions},
+    egui::{
+        self,
+        menu::bar as MenuBar,
+        Align,
+        Button,
+        CentralPanel,
+        Color32,
+        Context,
+        Layout,
+        ScrollArea,
+        SidePanel,
+        Slider,
+        Stroke,
+        TopBottomPanel,
+        Vec2,
+        Visuals,
+        Window,
+    },
+    EguiPluginHandle,
+    Result,
+};
+use wooting_profile_switcher as wps;
+
+use crate::{
+    config::{Config, Rule, Theme},
+    Args,
+};
+
+const CARGO_PKG_AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
+const CARGO_PKG_DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
+const CARGO_PKG_NAME: &str = env!("CARGO_PKG_NAME");
+const CARGO_PKG_REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
+
+struct SelectedRule {
+    alias: String,
+    match_app_name: String,
+    match_bin_name: String,
+    match_bin_path: String,
+    match_win_name: String,
+    profile_index: u8,
+    rule_index: usize,
+}
+
+impl SelectedRule {
+    fn new(rule: Rule, i: usize) -> Self {
+        Self {
+            alias: rule.alias,
+            match_app_name: rule.match_app_name.unwrap_or_default(),
+            match_bin_name: rule.match_bin_name.unwrap_or_default(),
+            match_bin_path: rule.match_bin_path.unwrap_or_default(),
+            match_win_name: rule.match_win_name.unwrap_or_default(),
+            profile_index: rule.profile_index,
+            rule_index: i,
+        }
+    }
+
+    fn to_rule(&self) -> Rule {
+        Rule {
+            alias: self.alias.clone(),
+            match_app_name: Some(self.match_app_name.clone()),
+            match_bin_name: Some(self.match_bin_name.clone()),
+            match_bin_path: Some(self.match_bin_path.clone()),
+            match_win_name: Some(self.match_win_name.clone()),
+            profile_index: self.profile_index,
+        }
+    }
+}
+
+pub struct MainApp {
+    app: AppHandle,
+    open_about: bool,
+    open_confirm: bool,
+    selected_rule: Option<SelectedRule>,
+}
+
+impl MainApp {
+    pub fn open(app: &AppHandle) -> Result<()> {
+        let egui_handle = app.state::<EguiPluginHandle>();
+
+        let native_options = NativeOptions {
+            initial_window_size: Some(Vec2::new(720.0, 480.0)),
+            icon_data: Self::get_icon_data(),
+            ..Default::default()
+        };
+
+        let app = app.clone();
+        egui_handle.create_window(
+            CARGO_PKG_NAME.into(),
+            Box::new(|cc| Box::new(Self::new(cc, app))),
+            CARGO_PKG_DESCRIPTION.into(),
+            native_options,
+        )?;
+
+        Ok(())
+    }
+
+    fn new(cc: &CreationContext<'_>, app: AppHandle) -> Self {
+        let config = app.state::<RwLock<Config>>();
+        let visuals = match config.read().ui.theme {
+            Theme::Dark => Visuals::dark(),
+            Theme::Light => Visuals::light(),
+        };
+
+        cc.egui_ctx.set_visuals(visuals);
+        cc.egui_ctx.set_pixels_per_point(config.read().ui.scale);
+
+        Self {
+            app,
+            open_about: false,
+            open_confirm: false,
+            selected_rule: None,
+        }
+    }
+
+    /// https://github.com/emilk/egui/discussions/1574
+    fn get_icon_data() -> Option<IconData> {
+        let buffer = include_bytes!("../icons/icon.png");
+        let Ok(image) = image::load_from_memory(buffer).map(DynamicImage::into_rgba8) else {
+            return None;
+        };
+
+        let (width, height) = image.dimensions();
+        let rgba = image.into_raw();
+
+        Some(IconData {
+            rgba,
+            width,
+            height,
+        })
+    }
+}
+
+impl App for MainApp {
+    fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
+        let Self {
+            app,
+            open_about,
+            open_confirm,
+            selected_rule,
+        } = self;
+
+        let args = app.state::<RwLock<Args>>();
+        let config = app.state::<RwLock<Config>>();
+
+        Window::new("About")
+            .collapsible(false)
+            .open(open_about)
+            .resizable(false)
+            .show(ctx, |ui| {
+                ui.heading(CARGO_PKG_DESCRIPTION);
+                ui.label(CARGO_PKG_AUTHORS.split(':').collect::<Vec<_>>().join("\n"));
+                ui.hyperlink_to("Source Code Repository", CARGO_PKG_REPOSITORY);
+            });
+
+        if *open_confirm {
+            Window::new("Confirm")
+                .collapsible(false)
+                .resizable(false)
+                .show(ctx, |ui| {
+                    ui.label("Are you sure you want to delete this rule?");
+                    ui.horizontal(|ui| {
+                        if ui.button("Yes").clicked() {
+                            if let Some(rule) = &selected_rule {
+                                let mut config = config.write();
+                                config.rules.remove(rule.rule_index);
+                                config.save().expect("Failed to save config");
+                            }
+                            *selected_rule = None;
+                            *open_confirm = false;
+                        }
+                        if ui.button("No").clicked() {
+                            *open_confirm = false;
+                        }
+                    });
+                });
+        }
+
+        TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            MenuBar(ui, |ui| {
+                ui.menu_button("File", |ui| {
+                    for (profile_index, title) in config.read().profiles.iter().enumerate() {
+                        if ui.button(title).clicked() {
+                            ui.close_menu();
+
+                            args.write().profile_index = Some(profile_index as u8);
+                            wps::set_active_profile_index(
+                                profile_index as u8,
+                                config.read().send_sleep_ms,
+                                config.read().swap_lighting,
+                            );
+                        }
+                    }
+
+                    ui.separator();
+
+                    let paused = args.read().paused;
+                    let text = if paused {
+                        "Resume Scanning"
+                    } else {
+                        "Pause Scanning"
+                    };
+                    if ui.button(text).clicked() {
+                        ui.close_menu();
+
+                        args.write().paused = !paused;
+                    }
+
+                    ui.separator();
+
+                    if ui.button("Quit Program").clicked() {
+                        ui.close_menu();
+
+                        app.exit(0);
+                    }
+                });
+                ui.menu_button("Edit", |ui| {
+                    if ui.button("Open Config File").clicked() {
+                        ui.close_menu();
+
+                        let config_path = Config::get_path().expect("Failed to get config path");
+                        open::that(config_path).expect("Failed to open config file");
+                    }
+                    if ui.button("Reload Config File").clicked() {
+                        ui.close_menu();
+
+                        *config.write() = Config::load().expect("Failed to reload config");
+                    }
+                });
+                ui.menu_button("Help", |ui| {
+                    if ui.button("About").clicked() {
+                        ui.close_menu();
+
+                        *open_about = true;
+                    }
+                });
+
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    egui::warn_if_debug_build(ui);
+                })
+            });
+        });
+
+        SidePanel::left("side_panel")
+            .resizable(false)
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.heading("Rules");
+
+                    let add_button = Button::new("+").small();
+                    if ui.add(add_button).clicked() {
+                        let mut config = config.write();
+                        let rule = Rule {
+                            alias: format!("Rule {}", config.rules.len()),
+                            ..Default::default()
+                        };
+                        config.rules.push(rule.clone());
+                        config.save().expect("Failed to save config");
+                        *selected_rule = Some(SelectedRule::new(rule, config.rules.len() - 1));
+                    }
+
+                    let enabled = selected_rule.is_some();
+                    let del_button = Button::new("-").small();
+                    if ui.add_enabled(enabled, del_button).clicked() {
+                        *open_confirm = true;
+                    }
+                });
+
+                ScrollArea::vertical().id_source("rules").show(ui, |ui| {
+                    let rules = config.read().rules.clone();
+                    for (i, rule) in rules.into_iter().enumerate() {
+                        let mut button = Button::new(&rule.alias).wrap(false);
+                        if let Some(rule) = selected_rule {
+                            if rule.rule_index == i {
+                                let color = ui.visuals().strong_text_color();
+                                button = button.stroke(Stroke::new(1.0, color));
+                            }
+                        }
+                        if ui.add(button).clicked() {
+                            *selected_rule = Some(SelectedRule::new(rule, i));
+                        }
+                    }
+                });
+            });
+
+        CentralPanel::default().show(ctx, |ui| {
+            let Some(selected_rule) = selected_rule else {
+                ui.heading("No rule selected");
+                return;
+            };
+
+            ui.colored_label(Color32::KHAKI, "Match variables support Wildcard and Regex");
+
+            let height = 18.0;
+            TableBuilder::new(ui)
+                .column(Size::exact(100.0))
+                .column(Size::remainder())
+                .body(|mut body| {
+                    body.row(height, |mut row| {
+                        row.col(|ui| {
+                            ui.label("Rule Alias/Name");
+                        });
+                        row.col(|ui| {
+                            ui.text_edit_singleline(&mut selected_rule.alias);
+                        });
+                    });
+                    body.row(height, |mut row| {
+                        row.col(|ui| {
+                            ui.label("Match App Name");
+                        });
+                        row.col(|ui| {
+                            ui.text_edit_singleline(&mut selected_rule.match_app_name);
+                        });
+                    });
+                    body.row(height, |mut row| {
+                        row.col(|ui| {
+                            ui.label("Match Bin Name");
+                        });
+                        row.col(|ui| {
+                            ui.text_edit_singleline(&mut selected_rule.match_bin_name);
+                        });
+                    });
+                    body.row(height, |mut row| {
+                        row.col(|ui| {
+                            ui.label("Match Bin Path");
+                        });
+                        row.col(|ui| {
+                            ui.text_edit_singleline(&mut selected_rule.match_bin_path);
+                        });
+                    });
+                    body.row(height, |mut row| {
+                        row.col(|ui| {
+                            ui.label("Match Win Name");
+                        });
+                        row.col(|ui| {
+                            ui.text_edit_singleline(&mut selected_rule.match_win_name);
+                        });
+                    });
+                    body.row(height, |mut row| {
+                        row.col(|ui| {
+                            ui.label("Profile Index");
+                        });
+                        row.col(|ui| {
+                            let slider = Slider::new(&mut selected_rule.profile_index, 0..=3)
+                                .clamp_to_range(true);
+                            ui.add(slider);
+                        });
+                    });
+                    body.row(height, |mut row| {
+                        row.col(|ui| {
+                            if ui.button("Save").clicked() {
+                                let mut config = config.write();
+                                config.rules[selected_rule.rule_index] = selected_rule.to_rule();
+                                config.save().expect("Failed to save config");
+                            }
+                        });
+                    });
+                });
+        });
+    }
+}

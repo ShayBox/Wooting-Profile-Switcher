@@ -1,8 +1,8 @@
 [package]
 name = "wooting-profile-switcher"
 description = "WootingProfileSwitcher"
-version = "1.8.0"
-authors = ["Shayne Hartford <shaybox@shaybox.com>"]
+version = "1.9.0"
+authors = ["Shayne Hartford <shaybox@shaybox.com>", "Tony Langhammer"]
 edition = "2021"
 readme = "README.md"
 repository = "https://github.com/ShayBox/WootingProfileSwitcher"
@@ -19,7 +19,10 @@ anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 ctrlc = { version = "3", features = ["termination"] }
 dirs = "5"
+egui_extras = "0.19"
 encoding_rs = "0.8"
+image = "0.24"
+open = "5"
 parking_lot = "0.12"
 regex = "1"
 rusty-leveldb = "2"
@@ -27,7 +30,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_with = { version = "3", features = ["json"] }
 structstruck = "0.4.1"
-tauri = { version = "1", features = ["shell-open", "updater", "system-tray"] }
+tauri = { version = "~1.2", features = ["shell-open", "updater", "system-tray"] }
+tauri-egui = "0.1"
 wildflower = "0.3"
 wooting-rgb-sys = "0.2"
 

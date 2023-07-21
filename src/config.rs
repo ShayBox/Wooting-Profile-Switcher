@@ -9,13 +9,32 @@ use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub enum Theme {
+    #[default]
+    Dark,
+    Light,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Rule {
-    pub app_name: Option<String>,
-    pub process_name: Option<String>,
-    pub process_path: Option<String>,
-    pub title: Option<String>,
+    pub alias: String,
+    #[serde(rename = "app_name")]
+    pub match_app_name: Option<String>,
+    #[serde(rename = "process_name")]
+    pub match_bin_name: Option<String>,
+    #[serde(rename = "process_path")]
+    pub match_bin_path: Option<String>,
+    #[serde(rename = "title")]
+    pub match_win_name: Option<String>,
     pub profile_index: u8,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default)]
+pub struct Ui {
+    pub scale: f32,
+    pub theme: Theme,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -27,6 +46,7 @@ pub struct Config {
     pub swap_lighting: bool,
     pub profiles: Vec<String>,
     pub rules: Vec<Rule>,
+    pub ui: Ui,
 }
 
 impl Default for Config {
@@ -42,22 +62,18 @@ impl Default for Config {
                 String::from("Racing Profile"),
                 String::from("Mixed Movement"),
             ],
-            rules: vec![
-                Rule {
-                    app_name: None,
-                    process_name: Some(String::from("Isaac")),
-                    process_path: None,
-                    title: None,
-                    profile_index: 1,
-                },
-                Rule {
-                    app_name: None,
-                    process_name: Some(String::from("isaac-ng.exe")),
-                    process_path: None,
-                    title: None,
-                    profile_index: 2,
-                },
-            ],
+            rules: vec![Rule {
+                alias: String::from("The Binding of Isaac"),
+                match_app_name: Some(String::from("isaac-ng")),
+                match_bin_name: Some(String::from("isaac-ng.exe")),
+                match_bin_path: Some(String::from("C:\\Program Files (x86)\\Steam\\steamapps\\common\\The Binding of Isaac Rebirth\\isaac-ng.exe")),
+                match_win_name: Some(String::from("Binding of Isaac: Repentance")),
+                profile_index: 1,
+            }],
+            ui: Ui {
+                scale: 1.25,
+                theme: Theme::Dark,
+            },
         }
     }
 }
@@ -113,5 +129,19 @@ impl Config {
         };
 
         Ok(config)
+    }
+
+    pub fn save(&mut self) -> Result<()> {
+        let path = Self::get_path()?;
+        let mut file = File::options()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(path)?;
+
+        let content = serde_json::to_string_pretty(&self)?;
+        file.write_all(content.as_bytes())?;
+
+        Ok(())
     }
 }

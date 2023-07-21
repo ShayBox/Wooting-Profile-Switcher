@@ -15,6 +15,10 @@ Automatically switch Wooting keyboard profiles based on focused window
 
 [Download the latest release](https://github.com/ShayBox/WootingProfileSwitcher/releases/latest)
 
+## Screenshots
+
+![MainApp](https://github.com/ShayBox/WootingProfileSwitcher/assets/9505196/2dabd348-2b5c-49b1-8a51-e9cc3fcdf6a9)
+
 ## System Tray Icon
 
 The system tray icon allows you to pause/resume, reload, quit, and set the active profile
@@ -32,43 +36,36 @@ The config file is generated on first-run in the following location and format
 
 ```json5
 {
-    // The fallback profile to use when no match is found (optional)
-    "fallback_profile_index": null,
-    // Sleep duration for the loop checking the active window
-    "loop_sleep_ms": 250,
-    // Sleep duration between sending Wooting USB commands
-    "send_sleep_ms": 250,
-    // Swap the lighting effects with the keyboard profile
-    "swap_lighting": true,
-    // List of profile names, pulled from Wootility
-    "profiles" [
-      "Typing Profile",
-      "Rapid Profile",
-      "Racing Profile",
-      "Mixed Movement",
-    ],
-    // List of rule objects, all match rules support Wildcard and Regex
-    "rules": [
-        {
-            // Match against the official app name (optional)
-            "app_name": null,
-            // Match against the running process name (optional)
-            "process_name": "Isaac",
-            // Match against the running process path (optional)
-            "process_path": null,
-            // Match against the running window title (optional)
-            "title": null,
-            // The profile to switch to when a match is found for this rule (0-3)
-            "profile_index": 1
-        },
-        {
-            "app_name": null,
-            "process_name": "isaac-ng.exe",
-            "process_path": null,
-            "title": null,
-            "profile_index": 2
-        }
-    ]
+  // The fallback profile to use when no match is found (optional)
+  "fallback_profile_index": 0,
+  // Sleep duration for the loop checking the active window
+  "loop_sleep_ms": 250,
+  // Sleep duration between sending Wooting USB commands
+  "send_sleep_ms": 250,
+  // Swap the lighting effects with the keyboard profile
+  "swap_lighting": true,
+  // List of profile names, pulled from Wootility
+  "profiles": [
+    "Typing Profile",
+    "Rapid Profile",
+    "Racing Profile",
+    "Mixed Movement"
+  ],
+  // List of rule objects, all match rules support Wildcard and Regex
+  "rules": [
+    {
+      "alias": "The Binding of Isaac",
+      "match_app_name": "isaac-ng",
+      "match_bin_name": "isaac-ng.exe",
+      "match_bin_path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\The Binding of Isaac Rebirth\\isaac-ng.exe",
+      "match_win_name": "Binding of Isaac: Repentance",
+      "profile_index": 1
+    }
+  ],
+  "ui": {
+    "scale": 1.25,
+    "theme": "Dark"
+  }
 }
 ```
 
@@ -97,6 +94,3 @@ The config file is generated on first-run in the following location and format
     "profile_index": 0
 }
 ```
-
-[Wildcard]: https://crates.io/crates/wildflower
-[Regex]: https://crates.io/crates/regex
