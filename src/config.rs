@@ -40,6 +40,8 @@ pub struct Ui {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Config {
+    pub auto_launch: Option<bool>,
+    pub auto_update: Option<bool>,
     pub fallback_profile_index: Option<u8>,
     pub loop_sleep_ms: u64,
     pub send_sleep_ms: u64,
@@ -52,6 +54,8 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            auto_launch: None,
+            auto_update: None,
             fallback_profile_index: Some(0),
             loop_sleep_ms: 250,
             send_sleep_ms: 250,

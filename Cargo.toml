@@ -1,17 +1,17 @@
 [package]
 name = "wooting-profile-switcher"
-description = "WootingProfileSwitcher"
-version = "1.9.0"
+description = "Wooting Profile Switcher"
+version = "2.0.0"
 authors = ["Shayne Hartford <shaybox@shaybox.com>", "Tony Langhammer"]
 edition = "2021"
 readme = "README.md"
-repository = "https://github.com/ShayBox/WootingProfileSwitcher"
+repository = "https://github.com/ShayBox/Wooting-Profile-Switcher"
 license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = "1.4"
+tauri-build = { version = "2.0.0-alpha", features = ["config-toml"] }
 
 [dependencies]
 active-win-pos-rs = "0.8"
@@ -19,7 +19,7 @@ anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 ctrlc = { version = "3", features = ["termination"] }
 dirs = "5"
-egui_extras = "0.19"
+egui_extras = "0.22"
 encoding_rs = "0.8"
 image = "0.24"
 open = "5"
@@ -30,10 +30,16 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_with = { version = "3", features = ["json"] }
 structstruck = "0.4.1"
-tauri = { version = "~1.2", features = ["shell-open", "updater", "system-tray"] }
-tauri-egui = "0.1"
+tauri = { version = "2.0.0-alpha", features = ["system-tray"] }
+tauri-egui = { git = "https://github.com/Shays-Forks/tauri-egui.git", branch = "0.22" }
+tauri-plugin-autostart = "2.0.0-alpha"
+tauri-plugin-single-instance = "2.0.0-alpha"
+tauri-plugin-updater = "2.0.0-alpha"
 wildflower = "0.3"
 wooting-rgb-sys = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.48.0", features = ["Win32_Foundation", "Win32_System_Console"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

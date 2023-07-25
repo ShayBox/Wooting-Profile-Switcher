@@ -1,4 +1,4 @@
-use egui_extras::{Size, TableBuilder};
+use egui_extras::{Column, TableBuilder};
 use image::DynamicImage;
 use parking_lot::RwLock;
 use tauri::{AppHandle, Manager};
@@ -25,6 +25,7 @@ use tauri_egui::{
     EguiPluginHandle,
     Result,
 };
+use tauri_plugin_autostart::ManagerExt;
 use wooting_profile_switcher as wps;
 
 use crate::{
@@ -75,7 +76,9 @@ impl SelectedRule {
 pub struct MainApp {
     app: AppHandle,
     open_about: bool,
-    open_confirm: bool,
+    open_auto_launch: bool,
+    open_auto_update: bool,
+    open_confirm_delete: bool,
     selected_rule: Option<SelectedRule>,
 }
 
@@ -101,19 +104,21 @@ impl MainApp {
     }
 
     fn new(cc: &CreationContext<'_>, app: AppHandle) -> Self {
-        let config = app.state::<RwLock<Config>>();
-        let visuals = match config.read().ui.theme {
+        let config = app.state::<RwLock<Config>>().read().clone();
+        let visuals = match config.ui.theme {
             Theme::Dark => Visuals::dark(),
             Theme::Light => Visuals::light(),
         };
 
         cc.egui_ctx.set_visuals(visuals);
-        cc.egui_ctx.set_pixels_per_point(config.read().ui.scale);
+        cc.egui_ctx.set_pixels_per_point(config.ui.scale);
 
         Self {
             app,
             open_about: false,
-            open_confirm: false,
+            open_auto_launch: config.auto_launch.is_none(),
+            open_auto_update: config.auto_update.is_none(),
+            open_confirm_delete: false,
             selected_rule: None,
         }
     }
@@ -141,7 +146,9 @@ impl App for MainApp {
         let Self {
             app,
             open_about,
-            open_confirm,
+            open_auto_launch,
+            open_auto_update,
+            open_confirm_delete,
             selected_rule,
         } = self;
 
@@ -158,7 +165,56 @@ impl App for MainApp {
                 ui.hyperlink_to("Source Code Repository", CARGO_PKG_REPOSITORY);
             });
 
-        if *open_confirm {
+        if *open_auto_launch {
+            let auto_launch = app.autolaunch();
+            Window::new("Auto Startup")
+                .collapsible(false)
+                .resizable(false)
+                .show(ctx, |ui| {
+                    ui.label("Would you like to enable automatic startup?");
+                    ui.horizontal(|ui| {
+                        if ui.button("Yes").clicked() {
+                            let _ = auto_launch.enable();
+                            let mut config = config.write();
+                            config.auto_launch = Some(true);
+                            config.save().expect("Failed to save config");
+                            *open_auto_launch = false;
+                        }
+                        if ui.button("No").clicked() {
+                            let _ = auto_launch.disable();
+                            let mut config = config.write();
+                            config.auto_launch = Some(false);
+                            config.save().expect("Failed to save config");
+                            *open_auto_launch = false;
+                        }
+                    });
+                });
+        }
+
+        if *open_auto_update {
+            Window::new("Auto Update")
+                .collapsible(false)
+                .resizable(false)
+                .show(ctx, |ui| {
+                    ui.label("Would you like to enable automatic updates?");
+                    ui.horizontal(|ui| {
+                        if ui.button("Yes").clicked() {
+                            let mut config = config.write();
+                            config.auto_update = Some(true);
+                            config.save().expect("Failed to save config");
+                            *open_auto_update = false;
+                        }
+                        if ui.button("No").clicked() {
+                            let mut config = config.write();
+                            config.auto_update = Some(false);
+                            config.save().expect("Failed to save config");
+                            *open_auto_update = false;
+                        }
+                    });
+                });
+        }
+
+        if *open_confirm_delete {
             Window::new("Confirm")
                 .collapsible(false)
                 .resizable(false)
@@ -172,10 +228,10 @@ impl App for MainApp {
                                 config.save().expect("Failed to save config");
                             }
                             *selected_rule = None;
-                            *open_confirm = false;
+                            *open_confirm_delete = false;
                         }
                         if ui.button("No").clicked() {
-                            *open_confirm = false;
+                            *open_confirm_delete = false;
                         }
                     });
                 });
@@ -232,6 +288,22 @@ impl App for MainApp {
                         *config.write() = Config::load().expect("Failed to reload config");
                     }
                 });
+                ui.menu_button("View", |ui| {
+                    if ui.button("Swap Theme").clicked() {
+                        ui.close_menu();
+
+                        let mut config = config.write();
+                        config.ui.theme = match config.ui.theme {
+                            Theme::Dark => Theme::Light,
+                            Theme::Light => Theme::Dark,
+                        };
+                        config.save().expect("Failed to save config");
+                        ctx.set_visuals(match config.ui.theme {
+                            Theme::Dark => Visuals::dark(),
+                            Theme::Light => Visuals::light(),
+                        });
+                    }
+                });
                 ui.menu_button("Help", |ui| {
                     if ui.button("About").clicked() {
                         ui.close_menu();
@@ -267,7 +339,7 @@ impl App for MainApp {
                     let enabled = selected_rule.is_some();
                     let del_button = Button::new("-").small();
                     if ui.add_enabled(enabled, del_button).clicked() {
-                        *open_confirm = true;
+                        *open_confirm_delete = true;
                     }
                 });
 
@@ -298,8 +370,8 @@ impl App for MainApp {
 
             let height = 18.0;
             TableBuilder::new(ui)
-                .column(Size::exact(100.0))
-                .column(Size::remainder())
+                .column(Column::exact(100.0))
+                .column(Column::remainder())
                 .body(|mut body| {
                     body.row(height, |mut row| {
                         row.col(|ui| {

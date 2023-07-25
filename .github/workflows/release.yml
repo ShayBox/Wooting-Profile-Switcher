@@ -34,7 +34,7 @@ jobs:
         if: ${{ matrix.runner == 'ubuntu-latest' }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.0-dev libusb-1.0-0-dev libayatana-appindicator3-dev
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libusb-1.0-0-dev libayatana-appindicator3-dev libsoup-3.0-dev javascriptcoregtk-4.1-dev
 
       - name: Update Rust Toolchain
         run: rustup update stable
@@ -46,6 +46,9 @@ jobs:
       - name: Add Rust Target (Other)
         if: ${{ matrix.runner != 'macos-latest' }}
         run: rustup target add ${{ matrix.target }}
+        
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --git https://github.com/tauri-apps/tauri.git
 
       - name: Build Tauri Installers/Bundles/Images
         uses: tauri-apps/tauri-action@dev
@@ -56,13 +59,14 @@ jobs:
           args: --target ${{ matrix.target }}
           releaseId: ${{ github.event.release.id }}
           tagName: ${{ github.ref_name }}
+          tauriScript: "cargo tauri"
 
       - name: Build Portable Binary (Windows)
         if: ${{ matrix.runner == 'windows-latest' }}
         run: |
           cargo build --target ${{ matrix.target }}
-          mv ./target/${{ matrix.target }}/debug/wooting-profile-switcher.exe ./target/${{ matrix.target }}/debug/WootingProfileSwitcher_${{ github.ref_name }}_x64-portable.exe
+          mv ./target/${{ matrix.target }}/debug/wooting-profile-switcher.exe ./target/${{ matrix.target }}/debug/wooting-profile-switcher_${{ github.ref_name }}_x64-portable.exe
 
       - name: Upload Portable Binary (Windows)
         if: ${{ matrix.runner == 'windows-latest' }}
-        run: bash -c 'gh release upload ${{ github.ref_name }} ./target/${{ matrix.target }}/debug/WootingProfileSwitcher_${{ github.ref_name }}_x64-portable.exe --clobber'
+        run: bash -c 'gh release upload ${{ github.ref_name }} ./target/${{ matrix.target }}/debug/wooting-profile-switcher_${{ github.ref_name }}_x64-portable.exe --clobber'

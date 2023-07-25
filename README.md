@@ -2,22 +2,22 @@
   <a href="https://discord.shaybox.com">
     <img alt="Discord" src="https://img.shields.io/discord/824865729445888041?color=404eed&label=Discord&logo=Discord&logoColor=FFFFFF">
   </a>
-  <a href="https://github.com/shaybox/wootingprofileswitcher/releases/latest">
-    <img alt="Downloads" src="https://img.shields.io/github/downloads/shaybox/wootingprofileswitcher/total?color=3fb950&label=Downloads&logo=github&logoColor=FFFFFF">
+  <a href="https://github.com/shaybox/wooting-profile-switcher/releases/latest">
+    <img alt="Downloads" src="https://img.shields.io/github/downloads/shaybox/wooting-profile-switcher/total?color=3fb950&label=Downloads&logo=github&logoColor=FFFFFF">
   </a>
 </div>
 
-# WootingProfileSwitcher
+# Wooting Profile Switcher
 
 Automatically switch Wooting keyboard profiles based on focused window
 
 ## Installation
 
-[Download the latest release](https://github.com/ShayBox/WootingProfileSwitcher/releases/latest)
+[Download the latest release](https://github.com/ShayBox/Wooting-Profile-Switcher/releases/latest)
 
 ## Screenshots
 
-![MainApp](https://github.com/ShayBox/WootingProfileSwitcher/assets/9505196/2dabd348-2b5c-49b1-8a51-e9cc3fcdf6a9)
+![MainApp](https://github.com/ShayBox/Wooting-Profile-Switcher/assets/9505196/2dabd348-2b5c-49b1-8a51-e9cc3fcdf6a9)
 
 ## System Tray Icon
 

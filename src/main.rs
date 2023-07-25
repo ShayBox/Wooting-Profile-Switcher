@@ -21,7 +21,11 @@ use tauri::{
     SystemTrayMenuItem,
 };
 use tauri_egui::EguiPluginBuilder;
+use tauri_plugin_autostart::{MacosLauncher::LaunchAgent, ManagerExt};
+use tauri_plugin_updater::UpdaterExt;
 use wildflower::Pattern;
+#[cfg(target_os = "windows")]
+use windows::Win32::System::Console::{AttachConsole, FreeConsole, ATTACH_PARENT_PROCESS};
 use wootility::Wootility;
 use wooting_profile_switcher as wps;
 
@@ -58,6 +62,9 @@ fn main() -> Result<()> {
     })?;
 
     Builder::default()
+        .plugin(tauri_plugin_autostart::init(LaunchAgent, None))
+        .plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {}))
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .system_tray(SystemTray::new())
         .setup(|app| {
             #[cfg(target_os = "macos")] // Hide the macOS dock icon
@@ -76,6 +83,37 @@ fn main() -> Result<()> {
                     config.read().swap_lighting,
                 );
                 std::process::exit(0);
+            }
+
+            let auto_launch_manager = app.autolaunch();
+            if let Some(auto_launch) = config.read().auto_launch {
+                let _ = if auto_launch {
+                    auto_launch_manager.enable()
+                } else {
+                    auto_launch_manager.disable()
+                };
+            }
+
+            let updater = app.updater();
+            if let Some(auto_update) = config.read().auto_update {
+                if auto_update {
+                    tauri::async_runtime::block_on(async move {
+                        match updater.check().await {
+                            Ok(update) => {
+                                if !update.is_update_available() {
+                                    return;
+                                }
+
+                                if let Err(error) = update.download_and_install(|_event| {}).await {
+                                    eprintln!("{error}");
+                                }
+                            }
+                            Err(error) => {
+                                eprintln!("{error}");
+                            }
+                        }
+                    });
+                }
             }
 
             // Load active profile names from Wootility
@@ -107,6 +145,12 @@ fn main() -> Result<()> {
                 .add_item(CustomMenuItem::new(String::from("quit"), "Quit Program"));
 
             tray_handle.set_menu(system_tray_menu)?;
+
+            #[cfg(target_os = "windows")]
+            unsafe {
+                FreeConsole();
+                AttachConsole(ATTACH_PARENT_PROCESS);
+            }
 
             Ok(())
         })
