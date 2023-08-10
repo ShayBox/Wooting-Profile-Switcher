@@ -39,47 +39,47 @@ const CARGO_PKG_NAME: &str = env!("CARGO_PKG_NAME");
 const CARGO_PKG_REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 
 struct SelectedRule {
-    alias: String,
+    alias:          String,
     match_app_name: String,
     match_bin_name: String,
     match_bin_path: String,
     match_win_name: String,
-    profile_index: u8,
-    rule_index: usize,
+    profile_index:  u8,
+    rule_index:     usize,
 }
 
 impl SelectedRule {
     fn new(rule: Rule, i: usize) -> Self {
         Self {
-            alias: rule.alias,
+            alias:          rule.alias,
             match_app_name: rule.match_app_name.unwrap_or_default(),
             match_bin_name: rule.match_bin_name.unwrap_or_default(),
             match_bin_path: rule.match_bin_path.unwrap_or_default(),
             match_win_name: rule.match_win_name.unwrap_or_default(),
-            profile_index: rule.profile_index,
-            rule_index: i,
+            profile_index:  rule.profile_index,
+            rule_index:     i,
         }
     }
 
     fn to_rule(&self) -> Rule {
         Rule {
-            alias: self.alias.clone(),
+            alias:          self.alias.clone(),
             match_app_name: Some(self.match_app_name.clone()),
             match_bin_name: Some(self.match_bin_name.clone()),
             match_bin_path: Some(self.match_bin_path.clone()),
             match_win_name: Some(self.match_win_name.clone()),
-            profile_index: self.profile_index,
+            profile_index:  self.profile_index,
         }
     }
 }
 
 pub struct MainApp {
-    app: AppHandle,
-    open_about: bool,
-    open_auto_launch: bool,
-    open_auto_update: bool,
+    app_handle:          AppHandle,
+    open_about:          bool,
+    open_auto_launch:    bool,
+    open_auto_update:    bool,
     open_confirm_delete: bool,
-    selected_rule: Option<SelectedRule>,
+    selected_rule:       Option<SelectedRule>,
 }
 
 impl MainApp {
@@ -114,12 +114,12 @@ impl MainApp {
         cc.egui_ctx.set_pixels_per_point(config.ui.scale);
 
         Self {
-            app,
-            open_about: false,
-            open_auto_launch: config.auto_launch.is_none(),
-            open_auto_update: config.auto_update.is_none(),
+            app_handle:          app,
+            open_about:          false,
+            open_auto_launch:    config.auto_launch.is_none(),
+            open_auto_update:    config.auto_update.is_none(),
             open_confirm_delete: false,
-            selected_rule: None,
+            selected_rule:       None,
         }
     }
 
@@ -144,7 +144,7 @@ impl MainApp {
 impl App for MainApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         let Self {
-            app,
+            app_handle: app,
             open_about,
             open_auto_launch,
             open_auto_update,

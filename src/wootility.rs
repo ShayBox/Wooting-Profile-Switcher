@@ -9,9 +9,9 @@ use serde_with::{json::JsonString, serde_as};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Color {
-    pub blue: i64,
+    pub blue:  i64,
     pub green: i64,
-    pub red: i64,
+    pub red:   i64,
 }
 
 // This isn't exactly pretty but it reduces a lot of duplicated code

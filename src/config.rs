@@ -18,7 +18,7 @@ pub enum Theme {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Rule {
-    pub alias: String,
+    pub alias:          String,
     #[serde(rename = "app_name")]
     pub match_app_name: Option<String>,
     #[serde(rename = "process_name")]
@@ -27,7 +27,7 @@ pub struct Rule {
     pub match_bin_path: Option<String>,
     #[serde(rename = "title")]
     pub match_win_name: Option<String>,
-    pub profile_index: u8,
+    pub profile_index:  u8,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
