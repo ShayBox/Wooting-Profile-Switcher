@@ -75,10 +75,11 @@ The config file is generated on first-run in the following location and format
 
 ```json5
 {
-    "app_name": null,
-    "process_name": null,
-    "process_path": null,
-    "title": "VRCX ????.??.??",
+    "alias": "VRCX",
+    "match_app_name": null,
+    "match_bin_name": null,
+    "match_bin_path": null,
+    "match_win_name": "VRCX ????.??.??",
     "profile_index": 0
 }
 ```
@@ -87,10 +88,11 @@ The config file is generated on first-run in the following location and format
 
 ```json5
 {
-    "app_name": null,
-    "process_name": null,
-    "process_path": null,
-    "title": "Minecraft [\d]+.[\d]+.[\d]+",
+    "alias": "Minecraft",
+    "match_app_name": null,
+    "match_bin_name": null,
+    "match_bin_path": null,
+    "match_win_name": "Minecraft [\d]+.[\d]+.[\d]+",
     "profile_index": 0
 }
 ```

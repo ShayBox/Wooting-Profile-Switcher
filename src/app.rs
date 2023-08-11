@@ -1,4 +1,5 @@
 use egui_extras::{Column, TableBuilder};
+use game_scanner::prelude::*;
 use image::DynamicImage;
 use parking_lot::RwLock;
 use tauri::{AppHandle, Manager};
@@ -23,7 +24,7 @@ use tauri_egui::{
         Window,
     },
     EguiPluginHandle,
-    Result,
+    Error,
 };
 use tauri_plugin_autostart::ManagerExt;
 use wooting_profile_switcher as wps;
@@ -78,12 +79,13 @@ pub struct MainApp {
     open_about:          bool,
     open_auto_launch:    bool,
     open_auto_update:    bool,
+    open_new_rule_setup: bool,
     open_confirm_delete: bool,
     selected_rule:       Option<SelectedRule>,
 }
 
 impl MainApp {
-    pub fn open(app: &AppHandle) -> Result<()> {
+    pub fn open(app: &AppHandle) -> Result<(), Error> {
         let egui_handle = app.state::<EguiPluginHandle>();
 
         let native_options = NativeOptions {
@@ -118,6 +120,7 @@ impl MainApp {
             open_about:          false,
             open_auto_launch:    config.auto_launch.is_none(),
             open_auto_update:    config.auto_update.is_none(),
+            open_new_rule_setup: false,
             open_confirm_delete: false,
             selected_rule:       None,
         }
@@ -148,6 +151,7 @@ impl App for MainApp {
             open_about,
             open_auto_launch,
             open_auto_update,
+            open_new_rule_setup,
             open_confirm_delete,
             selected_rule,
         } = self;
@@ -214,8 +218,60 @@ impl App for MainApp {
                 });
         }
 
+        if *open_new_rule_setup {
+            Window::new("New Rule Setup")
+                .collapsible(false)
+                .resizable(true)
+                .show(ctx, |ui| {
+                    ui.label("Select a game or blank to create a rule");
+                    ui.vertical_centered_justified(|ui| {
+                        let mut games = [
+                            game_scanner::amazon::games(),
+                            game_scanner::blizzard::games(),
+                            game_scanner::epicgames::games(),
+                            game_scanner::gog::games(),
+                            game_scanner::origin::games(),
+                            game_scanner::riotgames::games(),
+                            game_scanner::steam::games(),
+                            game_scanner::ubisoft::games(),
+                        ]
+                        .into_iter()
+                        .filter_map(Result::ok)
+                        .flatten()
+                        .collect::<Vec<_>>();
+
+                        games.insert(
+                            0,
+                            Game {
+                                name: String::from("Blank"),
+                                ..Default::default()
+                            },
+                        );
+
+                        for game in games {
+                            if ui.button(&game.name).clicked() {
+                                let mut config = config.write();
+                                let rule = Rule {
+                                    alias: game.name,
+                                    match_bin_path: game
+                                        .path
+                                        .map(|path| path.display().to_string()),
+                                    ..Default::default()
+                                };
+                                config.rules.push(rule.clone());
+                                config.save().expect("Failed to save config");
+
+                                let i = config.rules.len() - 1;
+                                *selected_rule = Some(SelectedRule::new(rule, i));
+                                *open_new_rule_setup = false;
+                            }
+                        }
+                    });
+                });
+        };
+
         if *open_confirm_delete {
-            Window::new("Confirm")
+            Window::new("Confirm Deletion")
                 .collapsible(false)
                 .resizable(false)
                 .show(ctx, |ui| {
@@ -326,14 +382,7 @@ impl App for MainApp {
 
                     let add_button = Button::new("+").small();
                     if ui.add(add_button).clicked() {
-                        let mut config = config.write();
-                        let rule = Rule {
-                            alias: format!("Rule {}", config.rules.len()),
-                            ..Default::default()
-                        };
-                        config.rules.push(rule.clone());
-                        config.save().expect("Failed to save config");
-                        *selected_rule = Some(SelectedRule::new(rule, config.rules.len() - 1));
+                        *open_new_rule_setup = true;
                     }
 
                     let enabled = selected_rule.is_some();

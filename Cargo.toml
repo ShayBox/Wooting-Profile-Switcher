@@ -1,7 +1,7 @@
 [package]
 name = "wooting-profile-switcher"
 description = "Wooting Profile Switcher"
-version = "2.0.0"
+version = "2.1.0"
 authors = ["Shayne Hartford <shaybox@shaybox.com>", "Tony Langhammer"]
 edition = "2021"
 readme = "README.md"
@@ -21,6 +21,7 @@ ctrlc = { version = "3", features = ["termination"] }
 dirs = "5"
 egui_extras = "0.22"
 encoding_rs = "0.8"
+game-scanner = { git = "https://github.com/Shays-Forks/game-scanner.git" }
 image = "0.24"
 open = "5"
 parking_lot = "0.12"
