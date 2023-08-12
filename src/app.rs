@@ -1,3 +1,5 @@
+use std::ops::Not;
+
 use egui_extras::{Column, TableBuilder};
 use game_scanner::prelude::*;
 use image::DynamicImage;
@@ -65,10 +67,26 @@ impl SelectedRule {
     fn to_rule(&self) -> Rule {
         Rule {
             alias:          self.alias.clone(),
-            match_app_name: Some(self.match_app_name.clone()),
-            match_bin_name: Some(self.match_bin_name.clone()),
-            match_bin_path: Some(self.match_bin_path.clone()),
-            match_win_name: Some(self.match_win_name.clone()),
+            match_app_name: self
+                .match_app_name
+                .is_empty()
+                .not()
+                .then_some(self.match_app_name.clone()),
+            match_bin_name: self
+                .match_bin_name
+                .is_empty()
+                .not()
+                .then_some(self.match_bin_name.clone()),
+            match_bin_path: self
+                .match_bin_path
+                .is_empty()
+                .not()
+                .then_some(self.match_bin_path.clone()),
+            match_win_name: self
+                .match_win_name
+                .is_empty()
+                .not()
+                .then_some(self.match_win_name.clone()),
             profile_index:  self.profile_index,
         }
     }
@@ -255,7 +273,7 @@ impl App for MainApp {
                                     alias: game.name,
                                     match_bin_path: game
                                         .path
-                                        .map(|path| path.display().to_string()),
+                                        .map(|path| path.display().to_string() + "*"),
                                     ..Default::default()
                                 };
                                 config.rules.push(rule.clone());
@@ -265,6 +283,10 @@ impl App for MainApp {
                                 *selected_rule = Some(SelectedRule::new(rule, i));
                                 *open_new_rule_setup = false;
                             }
+                        }
+
+                        if ui.button("Cancel").clicked() {
+                            *open_new_rule_setup = false;
                         }
                     });
                 });

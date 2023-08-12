@@ -301,7 +301,7 @@ fn find_match(active_window: ActiveWindow, rules: Vec<Rule>) -> Option<u8> {
     for (rule_prop_fn, active_prop) in match_active_window {
         if let Some(rule) = rules.iter().cloned().find(|rule| {
             if let Some(rule_prop) = rule_prop_fn(rule.clone()) {
-                if Pattern::new(&rule_prop).matches(&active_prop) {
+                if Pattern::new(&rule_prop.replace('\\', "\\\\")).matches(&active_prop) {
                     true
                 } else if let Ok(re) = Regex::new(&rule_prop) {
                     re.is_match(&active_prop)
