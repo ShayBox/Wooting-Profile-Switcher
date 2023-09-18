@@ -148,8 +148,8 @@ fn main() -> Result<()> {
 
             #[cfg(target_os = "windows")]
             unsafe {
-                FreeConsole();
-                AttachConsole(ATTACH_PARENT_PROCESS);
+                let _ = FreeConsole();
+                let _ = AttachConsole(ATTACH_PARENT_PROCESS);
             }
 
             Ok(())

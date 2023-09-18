@@ -40,6 +40,7 @@ const CARGO_PKG_AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
 const CARGO_PKG_DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
 const CARGO_PKG_NAME: &str = env!("CARGO_PKG_NAME");
 const CARGO_PKG_REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
+const CARGO_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 struct SelectedRule {
     alias:          String,
@@ -183,6 +184,7 @@ impl App for MainApp {
             .resizable(false)
             .show(ctx, |ui| {
                 ui.heading(CARGO_PKG_DESCRIPTION);
+                ui.heading(CARGO_PKG_VERSION);
                 ui.label(CARGO_PKG_AUTHORS.split(':').collect::<Vec<_>>().join("\n"));
                 ui.hyperlink_to("Source Code Repository", CARGO_PKG_REPOSITORY);
             });
@@ -243,51 +245,54 @@ impl App for MainApp {
                 .show(ctx, |ui| {
                     ui.label("Select a game or blank to create a rule");
                     ui.vertical_centered_justified(|ui| {
-                        let mut games = [
-                            game_scanner::amazon::games(),
-                            game_scanner::blizzard::games(),
-                            game_scanner::epicgames::games(),
-                            game_scanner::gog::games(),
-                            game_scanner::origin::games(),
-                            game_scanner::riotgames::games(),
-                            game_scanner::steam::games(),
-                            game_scanner::ubisoft::games(),
-                        ]
-                        .into_iter()
-                        .filter_map(Result::ok)
-                        .flatten()
-                        .collect::<Vec<_>>();
+                        ScrollArea::vertical().id_source("rules").show(ui, |ui| {
+                            let mut games = [
+                                game_scanner::amazon::games(),
+                                game_scanner::blizzard::games(),
+                                game_scanner::epicgames::games(),
+                                game_scanner::gog::games(),
+                                game_scanner::origin::games(),
+                                game_scanner::riotgames::games(),
+                                game_scanner::steam::games(),
+                                game_scanner::ubisoft::games(),
+                            ]
+                            .into_iter()
+                            .filter_map(Result::ok)
+                            .flatten()
+                            .collect::<Vec<_>>();
 
-                        games.insert(
-                            0,
-                            Game {
-                                name: String::from("Blank"),
-                                ..Default::default()
-                            },
-                        );
-
-                        for game in games {
-                            if ui.button(&game.name).clicked() {
-                                let mut config = config.write();
-                                let rule = Rule {
-                                    alias: game.name,
-                                    match_bin_path: game
-                                        .path
-                                        .map(|path| path.display().to_string() + "*"),
+                            games.sort_by(|a, b| String::cmp(&a.name, &b.name));
+                            games.insert(
+                                0,
+                                Game {
+                                    name: String::from("Blank"),
                                     ..Default::default()
-                                };
-                                config.rules.push(rule.clone());
-                                config.save().expect("Failed to save config");
+                                },
+                            );
 
-                                let i = config.rules.len() - 1;
-                                *selected_rule = Some(SelectedRule::new(rule, i));
+                            for game in games {
+                                if ui.button(&game.name).clicked() {
+                                    let mut config = config.write();
+                                    let rule = Rule {
+                                        alias: game.name,
+                                        match_bin_path: game
+                                            .path
+                                            .map(|path| path.display().to_string() + "*"),
+                                        ..Default::default()
+                                    };
+                                    config.rules.push(rule.clone());
+                                    config.save().expect("Failed to save config");
+
+                                    let i = config.rules.len() - 1;
+                                    *selected_rule = Some(SelectedRule::new(rule, i));
+                                    *open_new_rule_setup = false;
+                                }
+                            }
+
+                            if ui.button("Cancel").clicked() {
                                 *open_new_rule_setup = false;
                             }
-                        }
-
-                        if ui.button("Cancel").clicked() {
-                            *open_new_rule_setup = false;
-                        }
+                        });
                     });
                 });
         };

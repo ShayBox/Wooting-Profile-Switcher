@@ -53,7 +53,7 @@ jobs:
         run: rustup target add ${{ matrix.target }}
         
       - name: Install Tauri CLI
-        run: cargo install tauri-cli --git https://github.com/tauri-apps/tauri.git
+        run: cargo install tauri-cli --git https://github.com/Shays-Forks/tauri.git
 
       - name: Build Tauri Installers/Bundles/Images
         uses: tauri-apps/tauri-action@dev
