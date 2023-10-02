@@ -217,6 +217,11 @@ fn active_window_polling_task(app: AppHandle) -> Result<()> {
     let mut last_active_window: ActiveWindow = Default::default();
     let mut last_profile_index = wps::get_active_profile_index(wooting_usb_meta);
     args.write().profile_index = Some(last_profile_index);
+    wps::set_active_profile_index(
+        last_profile_index,
+        config.read().send_sleep_ms,
+        config.read().swap_lighting,
+    );
 
     loop {
         std::thread::sleep(Duration::from_millis(config.read().loop_sleep_ms));

@@ -1,7 +1,7 @@
 [package]
 name = "wooting-profile-switcher"
 description = "Wooting Profile Switcher"
-version = "2.1.2"
+version = "2.1.3"
 authors = ["Shayne Hartford <shaybox@shaybox.com>", "Tony Langhammer"]
 edition = "2021"
 readme = "README.md"
