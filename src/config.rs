@@ -7,6 +7,8 @@ use std::{
 
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
+use wooting_profile_switcher as wps;
+use wps::DeviceIndices;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub enum Theme {
@@ -27,7 +29,7 @@ pub struct Rule {
     pub match_bin_path: Option<String>,
     #[serde(rename = "title")]
     pub match_win_name: Option<String>,
-    pub profile_index:  u8,
+    pub device_indices: DeviceIndices,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -42,10 +44,12 @@ pub struct Ui {
 pub struct Config {
     pub auto_launch: Option<bool>,
     pub auto_update: Option<bool>,
-    pub fallback_profile_index: Option<u8>,
+    pub fallback_device_indices: Option<DeviceIndices>,
     pub loop_sleep_ms: u64,
     pub send_sleep_ms: u64,
     pub swap_lighting: bool,
+    pub serial_number: String,
+    pub serial_numbers: Vec<String>,
     pub profiles: Vec<String>,
     pub rules: Vec<Rule>,
     pub ui: Ui,
@@ -56,10 +60,12 @@ impl Default for Config {
         Self {
             auto_launch: None,
             auto_update: None,
-            fallback_profile_index: Some(0),
+            fallback_device_indices: Some(wps::get_device_indices().unwrap()),
             loop_sleep_ms: 250,
             send_sleep_ms: 250,
             swap_lighting: true,
+            serial_number: wps::get_active_serial_number().unwrap(),
+            serial_numbers: Vec::new(),
             profiles: vec![
                 String::from("Typing Profile"),
                 String::from("Rapid Profile"),
@@ -68,11 +74,11 @@ impl Default for Config {
             ],
             rules: vec![Rule {
                 alias: String::from("The Binding of Isaac"),
+                device_indices: DeviceIndices::new(),
                 match_app_name: Some(String::from("isaac-ng")),
                 match_bin_name: Some(String::from("isaac-ng.exe")),
                 match_bin_path: Some(String::from("C:\\Program Files (x86)\\Steam\\steamapps\\common\\The Binding of Isaac Rebirth\\isaac-ng.exe")),
                 match_win_name: Some(String::from("Binding of Isaac: Repentance")),
-                profile_index: 1,
             }],
             ui: Ui {
                 scale: 1.25,

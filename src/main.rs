@@ -28,6 +28,7 @@ use wildflower::Pattern;
 use windows::Win32::System::Console::{AttachConsole, FreeConsole, ATTACH_PARENT_PROCESS};
 use wootility::Wootility;
 use wooting_profile_switcher as wps;
+use wps::DeviceIndices;
 
 use crate::config::{Config, Rule};
 
@@ -42,6 +43,11 @@ struct Args {
     /// Can be useful for automation scripting.
     #[arg(short, long)]
     profile_index: Option<u8>,
+
+    /// Set the device serial number to change.
+    /// Defaults to the last selected.
+    #[arg(short, long)]
+    serial_number: Option<String>,
 
     /// Set the program to be paused by default.
     #[arg(long, default_value_t = false)]
@@ -76,7 +82,22 @@ fn main() -> Result<()> {
             let args = app.state::<RwLock<Args>>();
             let config = app.state::<RwLock<Config>>();
 
+            let serial_number = args
+                .read()
+                .serial_number
+                .clone()
+                .unwrap_or(config.read().serial_number.clone());
+            args.write().serial_number = Some(serial_number);
+
+            // One-shot command line argument to set the device and profile index
             if let Some(profile_index) = args.read().profile_index {
+                if let Some(serial_number) = &args.read().serial_number {
+                    if !wps::select_device(serial_number)? {
+                        println!("Device ({serial_number}) not found");
+                        std::process::exit(0);
+                    };
+                }
+
                 wps::set_active_profile_index(
                     profile_index,
                     config.read().send_sleep_ms,
@@ -85,6 +106,7 @@ fn main() -> Result<()> {
                 std::process::exit(0);
             }
 
+            // Enable or disable auto-launch on startup
             let auto_launch_manager = app.autolaunch();
             if let Some(auto_launch) = config.read().auto_launch {
                 let _ = if auto_launch {
@@ -94,6 +116,7 @@ fn main() -> Result<()> {
                 };
             }
 
+            // Check for updates and install them
             let updater = app.updater();
             if let Some(auto_update) = config.read().auto_update {
                 if auto_update {
@@ -128,15 +151,38 @@ fn main() -> Result<()> {
                 config.save()?;
             }
 
+            // Scan for new Wooting device serial numbers to merge
+            if let Ok(device_indices) = wps::get_device_indices() {
+                let mut serial_numbers = device_indices.into_keys().collect::<Vec<_>>();
+                let mut config = config.write();
+                config.serial_numbers.append(&mut serial_numbers);
+                config.serial_numbers.sort();
+                config.serial_numbers.dedup();
+                config.save()?;
+            };
+
             let tray_handle = app.tray_handle();
             let mut system_tray_menu = SystemTrayMenu::new();
 
+            // Serial numbers
+            if config.read().serial_numbers.len() > 1 {
+                for serial_number in config.read().serial_numbers.clone() {
+                    let id = &serial_number.to_string();
+                    let menu_item = CustomMenuItem::new(id, serial_number).selected();
+                    system_tray_menu = system_tray_menu.add_item(menu_item);
+                }
+
+                system_tray_menu = system_tray_menu.add_native_item(SystemTrayMenuItem::Separator);
+            }
+
+            // Profiles indices
             for (i, title) in config.read().profiles.iter().enumerate() {
                 let id = &i.to_string();
                 let menu_item = CustomMenuItem::new(id, title).selected();
                 system_tray_menu = system_tray_menu.add_item(menu_item);
             }
 
+            // Static buttons
             system_tray_menu = system_tray_menu
                 .add_native_item(SystemTrayMenuItem::Separator)
                 .add_item(CustomMenuItem::new(String::from("pause"), "Pause Scanning"))
@@ -182,6 +228,7 @@ fn main() -> Result<()> {
                         item_handle.set_title(title).unwrap();
                     }
                     _ => {
+                        let serial_number = &id.to_string();
                         if let Ok(profile_index) = id.parse::<u8>() {
                             args.write().profile_index = Some(profile_index);
                             wps::set_active_profile_index(
@@ -189,6 +236,13 @@ fn main() -> Result<()> {
                                 config.read().send_sleep_ms,
                                 config.read().swap_lighting,
                             );
+                        } else if wps::select_device(serial_number).unwrap() {
+                            let mut config = config.write();
+                            config.serial_number = serial_number.to_owned();
+                            config.save().unwrap();
+                            args.write().serial_number = Some(serial_number.to_owned());
+                        } else {
+                            println!("Device ({serial_number}) not found");
                         }
                     }
                 },
@@ -212,13 +266,18 @@ fn main() -> Result<()> {
 fn active_window_polling_task(app: AppHandle) -> Result<()> {
     let args = app.state::<RwLock<Args>>();
     let config = app.state::<RwLock<Config>>();
-    let wooting_usb_meta = wps::get_wooting_usb_meta();
 
-    let mut last_active_window: ActiveWindow = Default::default();
-    let mut last_profile_index = wps::get_active_profile_index(wooting_usb_meta);
-    args.write().profile_index = Some(last_profile_index);
+    let mut last_active_window = Default::default();
+    let mut last_device_indices = wps::get_device_indices()?;
+
+    let profile_index = last_device_indices
+        .get(&config.read().serial_number)
+        .map(|i| i.to_owned())
+        .unwrap_or_default();
+
+    args.write().profile_index = Some(profile_index);
     wps::set_active_profile_index(
-        last_profile_index,
+        profile_index,
         config.read().send_sleep_ms,
         config.read().swap_lighting,
     );
@@ -251,35 +310,35 @@ fn active_window_polling_task(app: AppHandle) -> Result<()> {
         }
 
         let rules = config.read().rules.clone();
-        let profile_index = match find_match(active_window, rules) {
-            Some(profile_index) => profile_index,
+        let device_indices = match find_match(active_window, rules) {
+            Some(device_indices) => device_indices,
             None => {
-                if let Some(fallback_profile_index) = config.read().fallback_profile_index {
-                    fallback_profile_index
+                if let Some(fallback_device_indices) = &config.read().fallback_device_indices {
+                    fallback_device_indices.clone()
                 } else {
                     continue;
                 }
             }
         };
 
-        if profile_index == last_profile_index {
+        if device_indices == last_device_indices {
             continue;
         } else {
-            last_profile_index = profile_index;
+            last_device_indices = device_indices.clone();
         }
 
-        println!("Updated Profile Index: {}", profile_index);
-        wps::set_active_profile_index(
-            profile_index,
+        println!("Updated Device Indices: {device_indices:#?}");
+        wps::set_device_indices(
+            device_indices,
             config.read().send_sleep_ms,
             config.read().swap_lighting,
-        );
+        )?;
         args.write().profile_index = Some(profile_index);
     }
 }
 
-/// Find the first matching profile index for the given active window
-fn find_match(active_window: ActiveWindow, rules: Vec<Rule>) -> Option<u8> {
+/// Find the first matching device indices for the given active window
+fn find_match(active_window: ActiveWindow, rules: Vec<Rule>) -> Option<DeviceIndices> {
     type RulePropFn = fn(Rule) -> Option<String>;
 
     let active_window_bin_path = active_window.process_path.display().to_string();
@@ -317,7 +376,7 @@ fn find_match(active_window: ActiveWindow, rules: Vec<Rule>) -> Option<u8> {
                 false
             }
         }) {
-            return Some(rule.profile_index);
+            return Some(rule.device_indices);
         }
     }
 

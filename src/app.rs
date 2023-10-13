@@ -30,6 +30,7 @@ use tauri_egui::{
 };
 use tauri_plugin_autostart::ManagerExt;
 use wooting_profile_switcher as wps;
+use wps::DeviceIndices;
 
 use crate::{
     config::{Config, Rule, Theme},
@@ -42,13 +43,14 @@ const CARGO_PKG_NAME: &str = env!("CARGO_PKG_NAME");
 const CARGO_PKG_REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 const CARGO_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 
+#[derive(Clone, Debug)]
 struct SelectedRule {
     alias:          String,
     match_app_name: String,
     match_bin_name: String,
     match_bin_path: String,
     match_win_name: String,
-    profile_index:  u8,
+    device_indices: DeviceIndices,
     rule_index:     usize,
 }
 
@@ -56,39 +58,41 @@ impl SelectedRule {
     fn new(rule: Rule, i: usize) -> Self {
         Self {
             alias:          rule.alias,
+            device_indices: rule.device_indices,
             match_app_name: rule.match_app_name.unwrap_or_default(),
             match_bin_name: rule.match_bin_name.unwrap_or_default(),
             match_bin_path: rule.match_bin_path.unwrap_or_default(),
             match_win_name: rule.match_win_name.unwrap_or_default(),
-            profile_index:  rule.profile_index,
             rule_index:     i,
         }
     }
+}
 
-    fn to_rule(&self) -> Rule {
-        Rule {
-            alias:          self.alias.clone(),
-            match_app_name: self
+impl From<SelectedRule> for Rule {
+    fn from(rule: SelectedRule) -> Self {
+        Self {
+            alias:          rule.alias,
+            device_indices: rule.device_indices,
+            match_app_name: rule
                 .match_app_name
                 .is_empty()
                 .not()
-                .then_some(self.match_app_name.clone()),
-            match_bin_name: self
+                .then_some(rule.match_app_name),
+            match_bin_name: rule
                 .match_bin_name
                 .is_empty()
                 .not()
-                .then_some(self.match_bin_name.clone()),
-            match_bin_path: self
+                .then_some(rule.match_bin_name),
+            match_bin_path: rule
                 .match_bin_path
                 .is_empty()
                 .not()
-                .then_some(self.match_bin_path.clone()),
-            match_win_name: self
+                .then_some(rule.match_bin_path),
+            match_win_name: rule
                 .match_win_name
                 .is_empty()
                 .not()
-                .then_some(self.match_win_name.clone()),
-            profile_index:  self.profile_index,
+                .then_some(rule.match_win_name),
         }
     }
 }
@@ -323,6 +327,21 @@ impl App for MainApp {
         TopBottomPanel::top("top_panel").show(ctx, |ui| {
             MenuBar(ui, |ui| {
                 ui.menu_button("File", |ui| {
+                    if config.read().serial_numbers.len() > 1 {
+                        for serial_number in config.read().serial_numbers.clone() {
+                            if ui.button(&serial_number).clicked() {
+                                ui.close_menu();
+
+                                args.write().serial_number = Some(serial_number.clone());
+                                if !wps::select_device(&serial_number).unwrap() {
+                                    println!("Device ({serial_number}) not found");
+                                };
+                            }
+                        }
+
+                        ui.separator();
+                    }
+
                     for (profile_index, title) in config.read().profiles.iter().enumerate() {
                         if ui.button(title).clicked() {
                             ui.close_menu();
@@ -446,7 +465,7 @@ impl App for MainApp {
 
             let height = 18.0;
             TableBuilder::new(ui)
-                .column(Column::exact(100.0))
+                .column(Column::exact(140.0))
                 .column(Column::remainder())
                 .body(|mut body| {
                     body.row(height, |mut row| {
@@ -491,19 +510,37 @@ impl App for MainApp {
                     });
                     body.row(height, |mut row| {
                         row.col(|ui| {
-                            ui.label("Profile Index");
+                            ui.label("Serial Numbers");
                         });
                         row.col(|ui| {
-                            let slider = Slider::new(&mut selected_rule.profile_index, 0..=3)
-                                .clamp_to_range(true);
-                            ui.add(slider);
+                            ui.label("Profile Indices");
                         });
                     });
+                    for serial_number in config.read().serial_numbers.clone() {
+                        let profile_index = selected_rule.device_indices.get_mut(&serial_number);
+                        if profile_index.is_none() {
+                            selected_rule
+                                .device_indices
+                                .insert(serial_number.to_owned(), 0);
+                            continue;
+                        }
+                        body.row(height, |mut row| {
+                            row.col(|ui| {
+                                ui.label(serial_number);
+                            });
+                            row.col(|ui| {
+                                let slider = Slider::new(&mut *profile_index.unwrap(), 0..=3)
+                                    .clamp_to_range(true);
+                                ui.add(slider);
+                            });
+                        });
+                    }
                     body.row(height, |mut row| {
                         row.col(|ui| {
                             if ui.button("Save").clicked() {
+                                let rule = selected_rule.clone().into();
                                 let mut config = config.write();
-                                config.rules[selected_rule.rule_index] = selected_rule.to_rule();
+                                config.rules[selected_rule.rule_index] = rule;
                                 config.save().expect("Failed to save config");
                             }
                         });
