@@ -36,30 +36,58 @@ The config file is generated on first-run in the following location and format
 
 ```json5
 {
-  // The fallback profile to use when no match is found (optional)
-  "fallback_profile_index": 0,
+  // Auto launch at startup
+  "auto_launch": null,
+  // Auto update at startup
+  "auto_update": null,
+  // List of connected devices, their serial number properties, and profile names
+  "devices": {
+    "A02B2106W031H00418": {
+      "model_name": "Wooting Two LE",
+      "supplier": 2,
+      "year": 21,
+      "week": 6,
+      "product": 3,
+      "revision": 1,
+      "product_id": 418,
+      "production": true,
+      "profiles": [
+        "Typing Profile",
+        "Rapid Profile",
+        "Racing Profile",
+        "Mixed Movement"
+      ]
+    }
+  },
   // Sleep duration for the loop checking the active window
   "loop_sleep_ms": 250,
   // Sleep duration between sending Wooting USB commands
   "send_sleep_ms": 250,
+  // Show the serial number instead of the model name
+  "show_serial": false,
   // Swap the lighting effects with the keyboard profile
   "swap_lighting": true,
-  // List of profile names, pulled from Wootility
-  "profiles": [
-    "Typing Profile",
-    "Rapid Profile",
-    "Racing Profile",
-    "Mixed Movement"
-  ],
   // List of rule objects, all match rules support Wildcard and Regex
   "rules": [
     {
       "alias": "The Binding of Isaac",
-      "match_app_name": "isaac-ng",
-      "match_bin_name": "isaac-ng.exe",
-      "match_bin_path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\The Binding of Isaac Rebirth\\isaac-ng.exe",
-      "match_win_name": "Binding of Isaac: Repentance",
-      "profile_index": 1
+      "device_indices": {
+        "A02B2106W031H00418": 0
+      },
+      "match_app_name": null,
+      "match_bin_name": null,
+      "match_bin_path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\The Binding of Isaac Rebirth*",
+      "match_win_name": null
+    },
+    {
+      "alias": "Default Fallback",
+      "device_indices": {
+        "A02B2106W031H00418": 0
+      },
+      "match_app_name": "*",
+      "match_bin_name": "*",
+      "match_bin_path": "*",
+      "match_win_name": "*"
     }
   ],
   "ui": {
@@ -80,7 +108,9 @@ The config file is generated on first-run in the following location and format
     "match_bin_name": null,
     "match_bin_path": null,
     "match_win_name": "VRCX ????.??.??",
-    "profile_index": 0
+    "device_indices": {
+      "A02B2106W031H00418": 0
+    },
 }
 ```
 
@@ -93,6 +123,8 @@ The config file is generated on first-run in the following location and format
     "match_bin_name": null,
     "match_bin_path": null,
     "match_win_name": "Minecraft [\d]+.[\d]+.[\d]+",
-    "profile_index": 0
+    "device_indices": {
+      "A02B2106W031H00418": 0
+    },
 }
 ```

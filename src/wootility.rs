@@ -1,11 +1,11 @@
-use std::{borrow::Cow, path::PathBuf};
+use std::{borrow::Cow, collections::HashMap, path::PathBuf};
 
 use anyhow::{anyhow, bail, Result};
 use encoding_rs::{UTF_16LE, WINDOWS_1252};
 use rusty_leveldb::{compressor::SnappyCompressor, CompressorId, Options, DB};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use serde_with::{json::JsonString, serde_as};
+use wooting_profile_switcher::DeviceID;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Color {
@@ -17,45 +17,22 @@ pub struct Color {
 // This isn't exactly pretty but it reduces a lot of duplicated code
 structstruck::strike! {
     #[strikethrough[serde_as]]
-    #[strikethrough[derive(Clone, Debug, Deserialize, Serialize)]]
+    #[strikethrough[derive(Clone, Debug, Default, Deserialize, Serialize)]]
     #[strikethrough[serde(rename_all = "camelCase")]]
     pub struct Wootility {
-        #[serde(rename = "_persist")]
-        #[serde_as(as = "JsonString")]
-        pub persist: struct {
-            pub rehydrated: bool,
-            pub version: i64,
-        },
         #[serde_as(as = "JsonString")]
         pub profiles: struct {
             pub current: struct {
-                pub device: i64,
+                pub device_profile: u8,
+                pub device_id: DeviceID,
             },
-            pub device: Vec<pub struct {
-                pub actuation_points: Vec<Vec<Value>>,
-                pub akc: Vec<Value>,
-                pub cfg: Value,
-                pub colors: Value,
+            pub devices: HashMap<DeviceID, Vec<pub struct Profile {
                 pub details: struct {
                     pub name: String,
                     pub uuid: String,
                 },
-                pub gamepad: Value,
-                pub keyboard_layout: Option<Value>,
-            }>,
-            pub inactive: Vec<Value>,
-        },
-        #[serde_as(as = "JsonString")]
-        pub wootility_config: struct {
-            pub active_theme: i64,
-            pub default_language: String,
-            pub preset_colors: Vec<Color>,
-            pub show_intro_page: bool,
-            pub show_update_notes: bool,
-            pub start_wootility_on_startup: bool,
-            pub version: i64,
-            pub wooting_service_enabled: bool,
-        },
+            }>>,
+        }
     }
 }
 

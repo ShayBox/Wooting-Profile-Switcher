@@ -3,6 +3,7 @@ use std::ops::Not;
 use egui_extras::{Column, TableBuilder};
 use game_scanner::prelude::*;
 use image::DynamicImage;
+use lazy_static::lazy_static;
 use parking_lot::RwLock;
 use tauri::{AppHandle, Manager};
 use tauri_egui::{
@@ -30,7 +31,7 @@ use tauri_egui::{
 };
 use tauri_plugin_autostart::ManagerExt;
 use wooting_profile_switcher as wps;
-use wps::DeviceIndices;
+use wps::{DeviceIndices, ProfileIndex};
 
 use crate::{
     config::{Config, Rule, Theme},
@@ -46,11 +47,11 @@ const CARGO_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Clone, Debug)]
 struct SelectedRule {
     alias:          String,
+    device_indices: DeviceIndices,
     match_app_name: String,
     match_bin_name: String,
     match_bin_path: String,
     match_win_name: String,
-    device_indices: DeviceIndices,
     rule_index:     usize,
 }
 
@@ -250,45 +251,51 @@ impl App for MainApp {
                     ui.label("Select a game or blank to create a rule");
                     ui.vertical_centered_justified(|ui| {
                         ScrollArea::vertical().id_source("rules").show(ui, |ui| {
-                            let mut games = [
-                                game_scanner::amazon::games(),
-                                game_scanner::blizzard::games(),
-                                game_scanner::epicgames::games(),
-                                game_scanner::gog::games(),
-                                game_scanner::origin::games(),
-                                game_scanner::riotgames::games(),
-                                game_scanner::steam::games(),
-                                game_scanner::ubisoft::games(),
-                            ]
-                            .into_iter()
-                            .filter_map(Result::ok)
-                            .flatten()
-                            .collect::<Vec<_>>();
+                            lazy_static! {
+                                static ref GAMES: Vec<Game> = {
+                                    let mut games = [
+                                        game_scanner::amazon::games(),
+                                        game_scanner::blizzard::games(),
+                                        game_scanner::epicgames::games(),
+                                        game_scanner::gog::games(),
+                                        game_scanner::origin::games(),
+                                        game_scanner::riotgames::games(),
+                                        game_scanner::steam::games(),
+                                        game_scanner::ubisoft::games(),
+                                    ]
+                                    .into_iter()
+                                    .filter_map(Result::ok)
+                                    .flatten()
+                                    .collect::<Vec<_>>();
 
-                            games.sort_by(|a, b| String::cmp(&a.name, &b.name));
-                            games.insert(
-                                0,
-                                Game {
-                                    name: String::from("Blank"),
-                                    ..Default::default()
-                                },
-                            );
+                                    games.sort_by(|a, b| String::cmp(&a.name, &b.name));
+                                    games.insert(
+                                        0,
+                                        Game {
+                                            name: String::from("Blank"),
+                                            ..Default::default()
+                                        },
+                                    );
 
-                            for game in games {
+                                    games
+                                };
+                            }
+
+                            for game in GAMES.iter() {
                                 if ui.button(&game.name).clicked() {
                                     let mut config = config.write();
                                     let rule = Rule {
-                                        alias: game.name,
+                                        alias: game.name.to_owned(),
                                         match_bin_path: game
                                             .path
+                                            .to_owned()
                                             .map(|path| path.display().to_string() + "*"),
                                         ..Default::default()
                                     };
-                                    config.rules.push(rule.clone());
+                                    config.rules.insert(0, rule.clone());
                                     config.save().expect("Failed to save config");
 
-                                    let i = config.rules.len() - 1;
-                                    *selected_rule = Some(SelectedRule::new(rule, i));
+                                    *selected_rule = Some(SelectedRule::new(rule, 0));
                                     *open_new_rule_setup = false;
                                 }
                             }
@@ -327,35 +334,37 @@ impl App for MainApp {
         TopBottomPanel::top("top_panel").show(ctx, |ui| {
             MenuBar(ui, |ui| {
                 ui.menu_button("File", |ui| {
-                    if config.read().serial_numbers.len() > 1 {
-                        for serial_number in config.read().serial_numbers.clone() {
-                            if ui.button(&serial_number).clicked() {
+                    for (device_serial, device) in config.read().devices.clone() {
+                        let serial_number = device_serial.to_string();
+                        let text = match config.read().show_serial {
+                            true => &serial_number,
+                            false => &device.model_name,
+                        };
+
+                        ui.label(text);
+
+                        for (profile_index, profile_name) in device.profiles.iter().enumerate() {
+                            if ui.button(profile_name).clicked() {
                                 ui.close_menu();
 
-                                args.write().serial_number = Some(serial_number.clone());
-                                if !wps::select_device(&serial_number).unwrap() {
-                                    println!("Device ({serial_number}) not found");
-                                };
+                                if wps::select_device_serial(&device_serial).is_err() {
+                                    return;
+                                }
+
+                                let _ = wps::set_active_profile_index(
+                                    profile_index as ProfileIndex,
+                                    config.read().send_sleep_ms,
+                                    config.read().swap_lighting,
+                                );
+
+                                let mut args = args.write();
+                                args.device_serial = Some(device_serial.clone());
+                                args.profile_index = Some(profile_index as ProfileIndex);
                             }
                         }
 
                         ui.separator();
                     }
-
-                    for (profile_index, title) in config.read().profiles.iter().enumerate() {
-                        if ui.button(title).clicked() {
-                            ui.close_menu();
-
-                            args.write().profile_index = Some(profile_index as u8);
-                            wps::set_active_profile_index(
-                                profile_index as u8,
-                                config.read().send_sleep_ms,
-                                config.read().swap_lighting,
-                            );
-                        }
-                    }
-
-                    ui.separator();
 
                     let paused = args.read().paused;
                     let text = if paused {
@@ -510,26 +519,36 @@ impl App for MainApp {
                     });
                     body.row(height, |mut row| {
                         row.col(|ui| {
-                            ui.label("Serial Numbers");
+                            let text = match config.read().show_serial {
+                                true => "Serial Numbers",
+                                false => "Model Names",
+                            };
+                            ui.label(text);
                         });
                         row.col(|ui| {
-                            ui.label("Profile Indices");
+                            ui.label("Profile Indices (Skip: -1)");
                         });
                     });
-                    for serial_number in config.read().serial_numbers.clone() {
-                        let profile_index = selected_rule.device_indices.get_mut(&serial_number);
+                    for (device_serial, device) in config.read().devices.clone() {
+                        let profile_index = selected_rule.device_indices.get_mut(&device_serial);
                         if profile_index.is_none() {
                             selected_rule
                                 .device_indices
-                                .insert(serial_number.to_owned(), 0);
+                                .insert(device_serial.clone(), 0);
                             continue;
                         }
+
                         body.row(height, |mut row| {
                             row.col(|ui| {
-                                ui.label(serial_number);
+                                let serial_number = device_serial.to_string();
+                                let text = match config.read().show_serial {
+                                    true => &serial_number,
+                                    false => &device.model_name,
+                                };
+                                ui.label(text);
                             });
                             row.col(|ui| {
-                                let slider = Slider::new(&mut *profile_index.unwrap(), 0..=3)
+                                let slider = Slider::new(&mut *profile_index.unwrap(), -1..=3)
                                     .clamp_to_range(true);
                                 ui.add(slider);
                             });

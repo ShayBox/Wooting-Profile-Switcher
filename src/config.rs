@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     ffi::OsStr,
     fs::File,
     io::{Read, Seek, Write},
@@ -8,7 +9,7 @@ use std::{
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 use wooting_profile_switcher as wps;
-use wps::DeviceIndices;
+use wps::{Device, DeviceIndices, DeviceSerial};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub enum Theme {
@@ -21,15 +22,15 @@ pub enum Theme {
 #[serde(default)]
 pub struct Rule {
     pub alias:          String,
-    #[serde(rename = "app_name")]
-    pub match_app_name: Option<String>,
-    #[serde(rename = "process_name")]
-    pub match_bin_name: Option<String>,
-    #[serde(rename = "process_path")]
-    pub match_bin_path: Option<String>,
-    #[serde(rename = "title")]
-    pub match_win_name: Option<String>,
     pub device_indices: DeviceIndices,
+    #[serde(alias = "app_name")]
+    pub match_app_name: Option<String>,
+    #[serde(alias = "process_name")]
+    pub match_bin_name: Option<String>,
+    #[serde(alias = "process_path")]
+    pub match_bin_path: Option<String>,
+    #[serde(alias = "title")]
+    pub match_win_name: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -44,13 +45,11 @@ pub struct Ui {
 pub struct Config {
     pub auto_launch: Option<bool>,
     pub auto_update: Option<bool>,
-    pub fallback_device_indices: Option<DeviceIndices>,
+    pub devices: HashMap<DeviceSerial, Device>,
     pub loop_sleep_ms: u64,
     pub send_sleep_ms: u64,
+    pub show_serial: bool,
     pub swap_lighting: bool,
-    pub serial_number: String,
-    pub serial_numbers: Vec<String>,
-    pub profiles: Vec<String>,
     pub rules: Vec<Rule>,
     pub ui: Ui,
 }
@@ -60,25 +59,26 @@ impl Default for Config {
         Self {
             auto_launch: None,
             auto_update: None,
-            fallback_device_indices: Some(wps::get_device_indices().unwrap()),
+            devices: HashMap::new(),
             loop_sleep_ms: 250,
             send_sleep_ms: 250,
+            show_serial: false,
             swap_lighting: true,
-            serial_number: wps::get_active_serial_number().unwrap(),
-            serial_numbers: Vec::new(),
-            profiles: vec![
-                String::from("Typing Profile"),
-                String::from("Rapid Profile"),
-                String::from("Racing Profile"),
-                String::from("Mixed Movement"),
-            ],
             rules: vec![Rule {
                 alias: String::from("The Binding of Isaac"),
                 device_indices: DeviceIndices::new(),
-                match_app_name: Some(String::from("isaac-ng")),
-                match_bin_name: Some(String::from("isaac-ng.exe")),
-                match_bin_path: Some(String::from("C:\\Program Files (x86)\\Steam\\steamapps\\common\\The Binding of Isaac Rebirth\\isaac-ng.exe")),
-                match_win_name: Some(String::from("Binding of Isaac: Repentance")),
+                match_app_name: None,
+                match_bin_name: None,
+                match_bin_path: Some(String::from("C:\\Program Files (x86)\\Steam\\steamapps\\common\\The Binding of Isaac Rebirth*")),
+                match_win_name: None,
+            },
+            Rule {
+                alias: String::from("Default Fallback"),
+                device_indices: wps::get_device_indices().unwrap_or_default(),
+                match_app_name: Some(String::from("*")),
+                match_bin_name: Some(String::from("*")),
+                match_bin_path: Some(String::from("*")),
+                match_win_name: Some(String::from("*")),
             }],
             ui: Ui {
                 scale: 1.25,
