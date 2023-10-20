@@ -332,7 +332,6 @@ fn active_window_polling_task(app: AppHandle) -> Result<()> {
             config.read().send_sleep_ms,
             config.read().swap_lighting,
         )?;
-        // args.write().profile_index = Some(profile_index);
     }
 }
 
@@ -361,21 +360,17 @@ fn find_match(active_window: ActiveWindow, rules: Vec<Rule>) -> Option<DeviceInd
         (|rule| rule.match_win_name, active_window.title),
     ];
 
-    for (rule_prop_fn, active_prop) in match_active_window {
-        if let Some(rule) = rules.iter().cloned().find(|rule| {
+    for rule in rules {
+        for (rule_prop_fn, active_prop) in &match_active_window {
             if let Some(rule_prop) = rule_prop_fn(rule.clone()) {
-                if Pattern::new(&rule_prop.replace('\\', "\\\\")).matches(&active_prop) {
-                    true
+                if Pattern::new(&rule_prop.replace('\\', "\\\\")).matches(active_prop) {
+                    return Some(rule.device_indices);
                 } else if let Ok(re) = Regex::new(&rule_prop) {
-                    re.is_match(&active_prop)
-                } else {
-                    false
+                    if re.is_match(active_prop) {
+                        return Some(rule.device_indices);
+                    }
                 }
-            } else {
-                false
             }
-        }) {
-            return Some(rule.device_indices);
         }
     }
 

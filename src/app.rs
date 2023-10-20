@@ -450,16 +450,30 @@ impl App for MainApp {
                 ScrollArea::vertical().id_source("rules").show(ui, |ui| {
                     let rules = config.read().rules.clone();
                     for (i, rule) in rules.into_iter().enumerate() {
-                        let mut button = Button::new(&rule.alias).wrap(false);
-                        if let Some(rule) = selected_rule {
-                            if rule.rule_index == i {
-                                let color = ui.visuals().strong_text_color();
-                                button = button.stroke(Stroke::new(1.0, color));
+                        ui.horizontal(|ui| {
+                            if ui.button("⬆").clicked() {
+                                let mut config = config.write();
+                                config.rules.swap(i, i - 1);
+                                config.save().expect("Failed to move rule up");
                             }
-                        }
-                        if ui.add(button).clicked() {
-                            *selected_rule = Some(SelectedRule::new(rule, i));
-                        }
+
+                            if ui.button("⬇").clicked() {
+                                let mut config = config.write();
+                                config.rules.swap(i, i + 1);
+                                config.save().expect("Failed to move rule down");
+                            }
+
+                            let mut button = Button::new(&rule.alias).wrap(false);
+                            if let Some(rule) = selected_rule {
+                                if rule.rule_index == i {
+                                    let color = ui.visuals().strong_text_color();
+                                    button = button.stroke(Stroke::new(1.0, color));
+                                }
+                            }
+                            if ui.add(button).clicked() {
+                                *selected_rule = Some(SelectedRule::new(rule, i));
+                            }
+                        });
                     }
                 });
             });
