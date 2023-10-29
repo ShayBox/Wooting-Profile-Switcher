@@ -163,7 +163,9 @@ fn main() -> Result<()> {
             }
 
             let tray_handle = app.tray_handle();
-            let mut system_tray_menu = SystemTrayMenu::new();
+            let mut system_tray_menu = SystemTrayMenu::new()
+                .add_item(CustomMenuItem::new("show", "Show Window"))
+                .add_native_item(SystemTrayMenuItem::Separator);
 
             for (device_serial, device) in config.read().devices.clone() {
                 let serial_number = device_serial.to_string();
@@ -209,6 +211,9 @@ fn main() -> Result<()> {
                     MainApp::open(app).expect("Failed to open main app");
                 }
                 SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
+                    "show" => {
+                        MainApp::open(app).expect("Failed to open main app");
+                    }
                     "quit" => {
                         app.exit(0);
                     }

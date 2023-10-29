@@ -15,6 +15,8 @@ Automatically switch Wooting keyboard profiles based on focused window
 
 [Download the latest release](https://github.com/ShayBox/Wooting-Profile-Switcher/releases/latest)
 
+You must install and run [Wootility](https://wooting.io/wootility) once, but must not have it running at the same time.
+
 ## Screenshots
 
 ![MainApp](https://github.com/ShayBox/Wooting-Profile-Switcher/assets/9505196/2dabd348-2b5c-49b1-8a51-e9cc3fcdf6a9)
