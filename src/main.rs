@@ -56,17 +56,18 @@ struct Args {
     paused: bool,
 }
 
+#[allow(clippy::too_many_lines)]
 fn main() -> Result<()> {
     // Reset the keyboard if the program panics
     std::panic::set_hook(Box::new(|_| unsafe {
         rgb::wooting_rgb_reset();
-        std::process::exit(0);
+        std::process::exit(1);
     }));
 
     // Reset the keyboard if the program is killed/terminated
     ctrlc::set_handler(move || unsafe {
         rgb::wooting_rgb_reset();
-        std::process::exit(0);
+        std::process::exit(1);
     })?;
 
     Builder::default()
@@ -102,9 +103,12 @@ fn main() -> Result<()> {
             // Scan for Wooting devices and Wootility profiles to save
             if let Ok(mut wootility) = Wootility::load() {
                 let Ok(devices) = wps::get_all_devices() else {
-                    println!("Failed to find any devices");
-                    std::process::exit(0);
+                    eprintln!("Failed to find any devices");
+                    eprintln!("Make sure you run Wootility once");
+                    std::process::exit(1);
                 };
+
+                println!("Found Devices: {devices:#?}");
 
                 let mut config = config.write();
                 config.devices = devices
@@ -124,8 +128,9 @@ fn main() -> Result<()> {
                     .collect();
                 config.save()?;
             } else {
-                println!("Failed to access Wootility local storage");
-                println!("Please make sure Wootility isn't running");
+                eprintln!("Failed to access Wootility local storage");
+                eprintln!("Please make sure Wootility isn't running");
+                // TODO: Add a GUI popup
             };
 
             // Enable or disable auto-launch on startup
@@ -167,11 +172,13 @@ fn main() -> Result<()> {
                 .add_item(CustomMenuItem::new("show", "Show Window"))
                 .add_native_item(SystemTrayMenuItem::Separator);
 
-            for (device_serial, device) in config.read().devices.clone() {
+            let devices = config.read().devices.clone();
+            for (device_serial, device) in devices {
                 let serial_number = device_serial.to_string();
-                let title = match config.read().show_serial {
-                    true => &serial_number,
-                    false => &device.model_name,
+                let title = if config.read().show_serial {
+                    &serial_number
+                } else {
+                    &device.model_name
                 };
 
                 let menu_item = CustomMenuItem::new(&serial_number, title).disabled();
@@ -266,10 +273,10 @@ fn main() -> Result<()> {
         })
         .build(tauri::generate_context!())?
         .run(move |app, event| {
-            if let RunEvent::Ready = event {
+            if matches!(event, RunEvent::Ready) {
                 let app = app.clone();
                 std::thread::spawn(move || {
-                    active_window_polling_task(app).unwrap();
+                    active_window_polling_task(&app).unwrap();
                 });
             }
         });
@@ -278,11 +285,11 @@ fn main() -> Result<()> {
 }
 
 // Polls the active window to matching rules and applies the keyboard profile
-fn active_window_polling_task(app: AppHandle) -> Result<()> {
+fn active_window_polling_task(app: &AppHandle) -> Result<()> {
     let args = app.state::<RwLock<Args>>();
     let config = app.state::<RwLock<Config>>();
 
-    let mut last_active_window = Default::default();
+    let mut last_active_window = ActiveWindow::default();
     let mut last_device_indices = wps::get_device_indices()?;
 
     loop {
@@ -291,7 +298,8 @@ fn active_window_polling_task(app: AppHandle) -> Result<()> {
         // Update the selected profile system tray menu item
         if let Some(active_profile_index) = args.read().profile_index {
             if let Some(active_device_serial) = args.read().device_serial.clone() {
-                for (device_serial, device) in config.read().devices.clone() {
+                let devices = config.read().devices.clone();
+                for (device_serial, device) in devices {
                     if device_serial != active_device_serial {
                         continue;
                     }
@@ -300,6 +308,7 @@ fn active_window_polling_task(app: AppHandle) -> Result<()> {
                         let id = format!("{device_serial}|{i}");
                         let tray_handle = app.tray_handle();
                         let item_handle = tray_handle.get_item(&id);
+                        #[allow(clippy::cast_sign_loss)]
                         let _ = item_handle.set_selected(i == active_profile_index as usize);
                     }
                 }
@@ -316,9 +325,9 @@ fn active_window_polling_task(app: AppHandle) -> Result<()> {
 
         if active_window == last_active_window {
             continue;
-        } else {
-            last_active_window = active_window.to_owned();
         }
+
+        last_active_window = active_window.clone();
 
         let rules = config.read().rules.clone();
         let Some(device_indices) = find_match(active_window, rules) else {
@@ -327,9 +336,9 @@ fn active_window_polling_task(app: AppHandle) -> Result<()> {
 
         if device_indices == last_device_indices {
             continue;
-        } else {
-            last_device_indices = device_indices.clone();
         }
+
+        last_device_indices = device_indices.clone();
 
         println!("Updated Device Indices: {device_indices:#?}");
         wps::set_device_indices(
@@ -341,6 +350,7 @@ fn active_window_polling_task(app: AppHandle) -> Result<()> {
 }
 
 // Find the first matching device indices for the given active window
+#[allow(clippy::uninlined_format_args)]
 fn find_match(active_window: ActiveWindow, rules: Vec<Rule>) -> Option<DeviceIndices> {
     type RulePropFn = fn(Rule) -> Option<String>;
 

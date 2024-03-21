@@ -1,13 +1,18 @@
 use std::{collections::HashMap, ffi::CStr, time::Duration};
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Error, Result};
 use derive_more::{Display, FromStr};
 use serde::{Deserialize, Serialize};
+use strum::FromRepr;
 use wooting_rgb_sys as rgb;
 
 /* Constants */
 
 // https://gist.github.com/BigBrainAFK/0ba454a1efb43f7cb6301cda8838f432
+#[allow(clippy::cast_possible_truncation)] // Max is 10
+const MAX_DEVICES: u8 = rgb::WOOTING_MAX_RGB_DEVICES as u8;
+const MAX_LENGTH: usize = u8::MAX as usize + 1;
+const MAGIC_WORD: u16 = 56016;
 const GET_SERIAL: u8 = 3;
 const RELOAD_PROFILE: u8 = 7;
 const GET_CURRENT_KEYBOARD_PROFILE_INDEX: u8 = 11;
@@ -22,29 +27,165 @@ pub type DeviceIndices = HashMap<DeviceSerial, ProfileIndex>;
 
 /* Structures */
 
+#[derive(Clone, Debug, Default, Display, Deserialize, FromRepr, Eq, Hash, PartialEq, Serialize)]
+pub enum Stage {
+    #[default]
+    H = 0, // Mass
+    P = 1, // PVT
+    T = 2, // DVT
+    E = 3, // EVT
+    X = 4, // Prototype
+}
+
+#[derive(Clone, Debug, Default, Display, Deserialize, Eq, FromStr, Hash, PartialEq, Serialize)]
+pub struct U32(u32);
+
 #[derive(Clone, Debug, Default, Display, Deserialize, Eq, FromStr, Hash, PartialEq, Serialize)]
 pub struct DeviceID(String);
 
 #[derive(Clone, Debug, Default, Display, Deserialize, Eq, FromStr, Hash, PartialEq, Serialize)]
 pub struct DeviceSerial(String);
 
-#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Device {
     pub model_name: String,
-    pub supplier:   u16,
-    pub year:       u8,
-    pub week:       u8,
-    pub product:    u16,
-    pub revision:   u16,
-    pub product_id: u16,
-    pub production: bool,
+    pub supplier:   u32,
+    pub year:       u32,
+    pub week:       u32,
+    pub product:    u32,
+    pub revision:   u32,
+    pub product_id: u32,
+    pub stage:      Stage,
+    pub variant:    Option<u32>,
+    pub pcb_design: Option<u32>,
+    pub minor_rev:  Option<u32>,
     pub profiles:   Vec<String>,
 }
 
 /* Implementations */
 
+/// Reverse engineered from Wootility
+impl TryFrom<Vec<u8>> for U32 {
+    type Error = Error;
+
+    fn try_from(bytes: Vec<u8>) -> Result<Self, Self::Error> {
+        let mut result: u32 = 0;
+        let mut shift: u32 = 0;
+
+        for byte in &bytes {
+            result |= u32::from(byte & 0x7F) << shift;
+            shift += 7;
+
+            if byte & 0x80 == 0 {
+                return Ok(Self(result));
+            }
+
+            if shift > 28 {
+                bail!("Integer too large");
+            }
+        }
+
+        bail!("Incomplete integer")
+    }
+}
+
+/// Reverse engineered from Wootility
+impl TryFrom<Vec<u8>> for Device {
+    type Error = Error;
+
+    fn try_from(buffer: Vec<u8>) -> Result<Self, Self::Error> {
+        const OFFSET: usize = 5;
+        let length = buffer[4] as usize;
+        let mut index = OFFSET;
+        let mut device = Self::default();
+        while index < length + OFFSET {
+            let field = buffer[index];
+            index += 1;
+
+            match field >> 3 {
+                1 => {
+                    let bytes = vec![buffer[index]];
+                    device.supplier = U32::try_from(bytes)?.0;
+                    index += 1;
+                }
+                2 => {
+                    let bytes = vec![buffer[index]];
+                    device.year = U32::try_from(bytes)?.0;
+                    index += 1;
+                }
+                3 => {
+                    let bytes = vec![buffer[index]];
+                    device.week = U32::try_from(bytes)?.0;
+                    index += 1;
+                }
+                4 => {
+                    let bytes = vec![buffer[index]];
+                    device.product = U32::try_from(bytes)?.0;
+                    index += 1;
+                }
+                5 => {
+                    let bytes = vec![buffer[index]];
+                    device.revision = U32::try_from(bytes)?.0;
+                    index += 1;
+                }
+                6 => {
+                    let bytes = vec![buffer[index], buffer[index + 1]];
+                    device.product_id = U32::try_from(bytes)?.0;
+                    index += 2;
+                }
+                7 => {
+                    let bytes = vec![buffer[index]];
+                    let discriminant = U32::try_from(bytes)?.0 as usize;
+                    device.stage = Stage::from_repr(discriminant).unwrap_or_default();
+                    index += 1;
+                }
+                9 => {
+                    let bytes = vec![buffer[index]];
+                    device.variant = Some(U32::try_from(bytes)?.0);
+                    index += 1;
+                }
+                10 => {
+                    let bytes = vec![buffer[index]];
+                    device.pcb_design = Some(U32::try_from(bytes)?.0);
+                    index += 1;
+                }
+                11 => {
+                    let bytes = vec![buffer[index]];
+                    device.minor_rev = Some(U32::try_from(bytes)?.0);
+                    index += 1;
+                }
+                _ => {
+                    // Skip unknown field
+                    let wire_type = field & 7;
+                    match wire_type {
+                        0 => index += 1,
+                        1 => index += 8,
+                        2 => {
+                            let length = buffer[index] as usize;
+                            index += length + 1;
+                        }
+                        3 => {
+                            // Skip nested fields
+                            while buffer[index] & 7 != 4 {
+                                index += 1;
+                            }
+                            index += 1;
+                        }
+                        5 => index += 4,
+                        _ => bail!("Invalid wire type"),
+                    }
+                }
+            }
+        }
+
+        Ok(device)
+    }
+}
+
 impl From<&Device> for DeviceID {
     fn from(device: &Device) -> Self {
+        // These must match exactly what the Wooting firmware reports
+        // https://github.com/WootingKb/wooting-rgb-sdk/blob/main/src/wooting-usb.c#L85
         let keyboard_type = match device.model_name.as_str() {
             "Wooting One" => 0,
             "Wooting Two" => 1,
@@ -55,17 +196,21 @@ impl From<&Device> for DeviceID {
             "Wooting Two HE (ARM)" => 6,
             "Wooting UwU" => 7,
             "Wooting UwU RGB" => 8,
-            &_ => 9,
+            "Wooting 60HE+" => 9,
+            &_ => 10,
         };
 
         let device_id = format!(
-            "{}{}{}{}{}{}",
+            "{}{}{}{}{}{}{}{}{}",
             keyboard_type,
             device.product_id,
             device.product,
             device.revision,
             device.week,
-            device.year
+            device.year,
+            device.pcb_design.unwrap_or_default(),
+            device.minor_rev.unwrap_or_default(),
+            device.variant.unwrap_or_default(),
         );
 
         Self(device_id)
@@ -75,12 +220,22 @@ impl From<&Device> for DeviceID {
 impl From<&Device> for DeviceSerial {
     fn from(device: &Device) -> Self {
         Self(format!(
-            "A{:02X}B{:02}{:02}W{:02X}{}H{:05}",
+            "A{:02X}B{:02}{:02}W{:02X}{}{}{}{}{}{:05}",
             device.supplier,
             device.year,
             device.week,
             device.product,
-            device.production as u8,
+            device
+                .pcb_design
+                .map_or_else(String::new, |pcb_design| format!("T{pcb_design:02}")),
+            device.revision,
+            device
+                .minor_rev
+                .map_or_else(String::new, |minor_rev| format!("{minor_rev:02}")),
+            device
+                .variant
+                .map_or_else(String::new, |variant| format!("S{variant:02}")),
+            device.stage,
             device.product_id
         ))
     }
@@ -94,7 +249,7 @@ impl TryFrom<DeviceID> for Device {
             rgb::wooting_usb_disconnect(false);
             rgb::wooting_usb_find_keyboard();
 
-            for device_index in 0..rgb::WOOTING_MAX_RGB_DEVICES as u8 {
+            for device_index in 0..MAX_DEVICES {
                 if !rgb::wooting_usb_select_device(device_index) {
                     continue;
                 }
@@ -118,7 +273,7 @@ impl TryFrom<DeviceSerial> for Device {
             rgb::wooting_usb_disconnect(false);
             rgb::wooting_usb_find_keyboard();
 
-            for device_index in 0..rgb::WOOTING_MAX_RGB_DEVICES as u8 {
+            for device_index in 0..MAX_DEVICES {
                 if !rgb::wooting_usb_select_device(device_index) {
                     continue;
                 }
@@ -136,42 +291,50 @@ impl TryFrom<DeviceSerial> for Device {
 
 /* Getters */
 
+#[allow(clippy::too_many_lines)]
 pub fn get_active_device() -> Result<Device> {
     unsafe {
         if !rgb::wooting_usb_find_keyboard() {
             bail!("Failed to find keyboard")
         };
 
-        let wooting_usb_meta = *rgb::wooting_usb_get_meta();
-        let c_str_model_name = CStr::from_ptr(wooting_usb_meta.model);
-
-        let len = u8::MAX as usize + 1;
-        let mut buf = vec![0u8; len];
+        /* Response Bytes
+         * 0-1 Magic Word
+         * 2   Command
+         * 3   Unknown
+         * 4   Length
+         * 5-L Buffer
+         */
+        let mut buffer = vec![0u8; MAX_LENGTH];
         let response = rgb::wooting_usb_send_feature_with_response(
-            buf.as_mut_ptr(),
-            len,
+            buffer.as_mut_ptr(),
+            MAX_LENGTH,
             GET_SERIAL,
             0,
             0,
             0,
-            0,
+            2,
         );
 
-        if response != len as i32 {
+        #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+        if response != MAX_LENGTH as i32 {
             bail!("Invalid response length");
         }
 
-        let device = Device {
-            model_name: c_str_model_name.to_str()?.replace("Lekker Edition", "LE"),
-            supplier:   u16::from_le_bytes(buf[5..7].try_into()?),
-            year:       buf[7],
-            week:       buf[8],
-            product:    u16::from_le_bytes(buf[9..11].try_into()?),
-            revision:   u16::from_le_bytes(buf[11..13].try_into()?),
-            product_id: u16::from_le_bytes(buf[13..15].try_into()?),
-            production: buf[15] == 0,
-            profiles:   Vec::new(),
-        };
+        let magic_word = u16::from_le_bytes([buffer[0], buffer[1]]);
+        if magic_word != MAGIC_WORD {
+            bail!("Invalid response type");
+        }
+
+        let command = buffer[2];
+        if command != GET_SERIAL {
+            bail!("Invalid response command");
+        }
+
+        let wooting_usb_meta = *rgb::wooting_usb_get_meta();
+        let c_str_model_name = CStr::from_ptr(wooting_usb_meta.model);
+        let mut device = Device::try_from(buffer)?;
+        device.model_name = c_str_model_name.to_str()?.replace("Lekker Edition", "LE");
 
         Ok(device)
     }
@@ -184,7 +347,7 @@ pub fn get_all_devices() -> Result<Vec<Device>> {
         rgb::wooting_usb_disconnect(false);
         rgb::wooting_usb_find_keyboard();
 
-        for device_index in 0..rgb::WOOTING_MAX_RGB_DEVICES as u8 {
+        for device_index in 0..MAX_DEVICES {
             if !rgb::wooting_usb_select_device(device_index) {
                 continue;
             }
@@ -199,13 +362,13 @@ pub fn get_all_devices() -> Result<Vec<Device>> {
     Ok(devices)
 }
 
+#[must_use]
 pub fn get_active_profile_index() -> ProfileIndex {
     unsafe {
-        let len = u8::MAX as usize + 1;
-        let mut buf = vec![0u8; len];
+        let mut buff = vec![0u8; MAX_LENGTH];
         let response = rgb::wooting_usb_send_feature_with_response(
-            buf.as_mut_ptr(),
-            len,
+            buff.as_mut_ptr(),
+            MAX_LENGTH,
             GET_CURRENT_KEYBOARD_PROFILE_INDEX,
             0,
             0,
@@ -213,9 +376,10 @@ pub fn get_active_profile_index() -> ProfileIndex {
             0,
         );
 
-        if response == len as i32 {
+        #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+        if response == MAX_LENGTH as i32 {
             let is_v2 = rgb::wooting_usb_use_v2_interface();
-            buf[if is_v2 { 5 } else { 4 }] as ProfileIndex
+            buff[if is_v2 { 5 } else { 4 }] as ProfileIndex
         } else {
             ProfileIndex::MAX
         }
@@ -229,7 +393,7 @@ pub fn get_device_indices() -> Result<DeviceIndices> {
         rgb::wooting_usb_disconnect(false);
         rgb::wooting_usb_find_keyboard();
 
-        for device_index in 0..rgb::WOOTING_MAX_RGB_DEVICES as u8 {
+        for device_index in 0..MAX_DEVICES {
             if !rgb::wooting_usb_select_device(device_index) {
                 continue;
             }
@@ -280,7 +444,7 @@ pub fn set_device_indices(
         rgb::wooting_usb_disconnect(false);
         rgb::wooting_usb_find_keyboard();
 
-        for device_index in 0..rgb::WOOTING_MAX_RGB_DEVICES as u8 {
+        for device_index in 0..MAX_DEVICES {
             if !rgb::wooting_usb_select_device(device_index) {
                 continue;
             }
@@ -306,7 +470,7 @@ pub fn select_device_serial(device_serial: &DeviceSerial) -> Result<Device> {
         rgb::wooting_usb_disconnect(false);
         rgb::wooting_usb_find_keyboard();
 
-        for device_index in 0..rgb::WOOTING_MAX_RGB_DEVICES as u8 {
+        for device_index in 0..MAX_DEVICES {
             if !rgb::wooting_usb_select_device(device_index) {
                 continue;
             }

@@ -98,6 +98,8 @@ impl From<SelectedRule> for Rule {
     }
 }
 
+#[allow(clippy::module_name_repetitions)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct MainApp {
     app_handle:          AppHandle,
     open_about:          bool,
@@ -150,7 +152,7 @@ impl MainApp {
         }
     }
 
-    /// https://github.com/emilk/egui/discussions/1574
+    /// <https://github.com/emilk/egui/discussions/1574>
     fn get_icon_data() -> Option<IconData> {
         let buffer = include_bytes!("../icons/icon.png");
         let Ok(image) = image::load_from_memory(buffer).map(DynamicImage::into_rgba8) else {
@@ -169,6 +171,7 @@ impl MainApp {
 }
 
 impl App for MainApp {
+    #[allow(clippy::too_many_lines)]
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         let Self {
             app_handle: app,
@@ -203,18 +206,20 @@ impl App for MainApp {
                     ui.label("Would you like to enable automatic startup?");
                     ui.horizontal(|ui| {
                         if ui.button("Yes").clicked() {
+                            *open_auto_launch = false;
                             let _ = auto_launch.enable();
+
                             let mut config = config.write();
                             config.auto_launch = Some(true);
                             config.save().expect("Failed to save config");
-                            *open_auto_launch = false;
                         }
                         if ui.button("No").clicked() {
+                            *open_auto_launch = false;
                             let _ = auto_launch.disable();
+
                             let mut config = config.write();
                             config.auto_launch = Some(false);
                             config.save().expect("Failed to save config");
-                            *open_auto_launch = false;
                         }
                     });
                 });
@@ -228,16 +233,18 @@ impl App for MainApp {
                     ui.label("Would you like to enable automatic updates?");
                     ui.horizontal(|ui| {
                         if ui.button("Yes").clicked() {
+                            *open_auto_update = false;
+
                             let mut config = config.write();
                             config.auto_update = Some(true);
                             config.save().expect("Failed to save config");
-                            *open_auto_update = false;
                         }
                         if ui.button("No").clicked() {
+                            *open_auto_update = false;
+
                             let mut config = config.write();
                             config.auto_update = Some(false);
                             config.save().expect("Failed to save config");
-                            *open_auto_update = false;
                         }
                     });
                 });
@@ -285,18 +292,18 @@ impl App for MainApp {
                                 if ui.button(&game.name).clicked() {
                                     let mut config = config.write();
                                     let rule = Rule {
-                                        alias: game.name.to_owned(),
+                                        alias: game.name.clone(),
                                         match_bin_path: game
                                             .path
-                                            .to_owned()
+                                            .clone()
                                             .map(|path| path.display().to_string() + "*"),
                                         ..Default::default()
                                     };
-                                    config.rules.insert(0, rule.clone());
-                                    config.save().expect("Failed to save config");
-
-                                    *selected_rule = Some(SelectedRule::new(rule, 0));
+                                    *selected_rule = Some(SelectedRule::new(rule.clone(), 0));
                                     *open_new_rule_setup = false;
+
+                                    config.rules.insert(0, rule);
+                                    config.save().expect("Failed to save config");
                                 }
                             }
 
@@ -334,11 +341,13 @@ impl App for MainApp {
         TopBottomPanel::top("top_panel").show(ctx, |ui| {
             MenuBar(ui, |ui| {
                 ui.menu_button("File", |ui| {
-                    for (device_serial, device) in config.read().devices.clone() {
+                    let devices = config.read().devices.clone();
+                    for (device_serial, device) in devices {
                         let serial_number = device_serial.to_string();
-                        let text = match config.read().show_serial {
-                            true => &serial_number,
-                            false => &device.model_name,
+                        let text = if config.read().show_serial {
+                            &serial_number
+                        } else {
+                            &device.model_name
                         };
 
                         ui.label(text);
@@ -351,15 +360,17 @@ impl App for MainApp {
                                     return;
                                 }
 
+                                #[allow(clippy::cast_possible_truncation)]
+                                let profile_index = profile_index as ProfileIndex;
                                 let _ = wps::set_active_profile_index(
-                                    profile_index as ProfileIndex,
+                                    profile_index,
                                     config.read().send_sleep_ms,
                                     config.read().swap_lighting,
                                 );
 
                                 let mut args = args.write();
                                 args.device_serial = Some(device_serial.clone());
-                                args.profile_index = Some(profile_index as ProfileIndex);
+                                args.profile_index = Some(profile_index);
                             }
                         }
 
@@ -404,15 +415,16 @@ impl App for MainApp {
                         ui.close_menu();
 
                         let mut config = config.write();
-                        config.ui.theme = match config.ui.theme {
+                        let theme = config.ui.theme.clone();
+                        config.ui.theme = match theme {
                             Theme::Dark => Theme::Light,
                             Theme::Light => Theme::Dark,
                         };
-                        config.save().expect("Failed to save config");
-                        ctx.set_visuals(match config.ui.theme {
+                        ctx.set_visuals(match theme {
                             Theme::Dark => Visuals::dark(),
                             Theme::Light => Visuals::light(),
                         });
+                        config.save().expect("Failed to save config");
                     }
                 });
                 ui.menu_button("Help", |ui| {
@@ -499,6 +511,7 @@ impl App for MainApp {
                             ui.text_edit_singleline(&mut selected_rule.alias);
                         });
                     });
+
                     body.row(height, |mut row| {
                         row.col(|ui| {
                             ui.label("Match App Name");
@@ -507,6 +520,7 @@ impl App for MainApp {
                             ui.text_edit_singleline(&mut selected_rule.match_app_name);
                         });
                     });
+
                     body.row(height, |mut row| {
                         row.col(|ui| {
                             ui.label("Match Bin Name");
@@ -515,6 +529,7 @@ impl App for MainApp {
                             ui.text_edit_singleline(&mut selected_rule.match_bin_name);
                         });
                     });
+
                     body.row(height, |mut row| {
                         row.col(|ui| {
                             ui.label("Match Bin Path");
@@ -523,6 +538,7 @@ impl App for MainApp {
                             ui.text_edit_singleline(&mut selected_rule.match_bin_path);
                         });
                     });
+
                     body.row(height, |mut row| {
                         row.col(|ui| {
                             ui.label("Match Win Name");
@@ -531,19 +547,22 @@ impl App for MainApp {
                             ui.text_edit_singleline(&mut selected_rule.match_win_name);
                         });
                     });
+
                     body.row(height, |mut row| {
                         row.col(|ui| {
-                            let text = match config.read().show_serial {
-                                true => "Serial Numbers",
-                                false => "Model Names",
-                            };
-                            ui.label(text);
+                            ui.label(if config.read().show_serial {
+                                "Serial Numbers"
+                            } else {
+                                "Model Names"
+                            });
                         });
                         row.col(|ui| {
                             ui.label("Profile Indices (Skip: -1)");
                         });
                     });
-                    for (device_serial, device) in config.read().devices.clone() {
+
+                    let devices = config.read().devices.clone();
+                    for (device_serial, device) in devices {
                         let profile_index = selected_rule.device_indices.get_mut(&device_serial);
                         if profile_index.is_none() {
                             selected_rule
@@ -555,11 +574,11 @@ impl App for MainApp {
                         body.row(height, |mut row| {
                             row.col(|ui| {
                                 let serial_number = device_serial.to_string();
-                                let text = match config.read().show_serial {
-                                    true => &serial_number,
-                                    false => &device.model_name,
-                                };
-                                ui.label(text);
+                                ui.label(if config.read().show_serial {
+                                    &serial_number
+                                } else {
+                                    &device.model_name
+                                });
                             });
                             row.col(|ui| {
                                 let slider = Slider::new(&mut *profile_index.unwrap(), -1..=3)
@@ -568,6 +587,7 @@ impl App for MainApp {
                             });
                         });
                     }
+
                     body.row(height, |mut row| {
                         row.col(|ui| {
                             if ui.button("Save").clicked() {

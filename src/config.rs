@@ -112,16 +112,13 @@ impl Config {
 
     pub fn load() -> Result<Self> {
         let path = Self::get_path()?;
-        let mut file = match File::open(&path) {
-            Ok(file) => file,
-            Err(_) => {
-                let mut file = File::create(&path)?;
-                let config = Config::default();
-                let text = serde_json::to_string_pretty(&config)?;
-                file.write_all(text.as_bytes())?;
+        let Ok(mut file) = File::open(&path) else {
+            let mut file = File::create(&path)?;
+            let config = Self::default();
+            let text = serde_json::to_string_pretty(&config)?;
+            file.write_all(text.as_bytes())?;
 
-                return Ok(config);
-            }
+            return Ok(config);
         };
 
         let mut text = String::new();

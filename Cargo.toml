@@ -1,7 +1,7 @@
 [package]
 name = "wooting-profile-switcher"
 description = "Wooting Profile Switcher"
-version = "2.3.2"
+version = "2.3.3"
 authors = ["Shayne Hartford <shaybox@shaybox.com>", "Tony Langhammer"]
 edition = "2021"
 readme = "README.md"
@@ -20,10 +20,10 @@ clap = { version = "4", features = ["derive"] }
 ctrlc = { version = "3", features = ["termination"] }
 derive_more = "0.99"
 dirs = "5"
-egui_extras = "0.22"
+egui_extras = "=0.22"
 encoding_rs = "0.8"
 game-scanner = { git = "https://github.com/Shays-Forks/game-scanner.git" }
-image = "0.24"
+image = "0.25"
 lazy_static = "1"
 open = "5"
 parking_lot = "0.12"
@@ -33,6 +33,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_with = { version = "3", features = ["json"] }
 structstruck = "0.4"
+strum = { version = "0.26", features = ["derive"] }
 tauri = { version = "=2.0.0-alpha.10", features = ["system-tray"] }
 tauri-egui = { git = "https://github.com/Shays-Forks/tauri-egui.git", branch = "0.22" }
 tauri-plugin-autostart = "=2.0.0-alpha.0"
@@ -43,10 +44,7 @@ wildflower = "0.3"
 wooting-rgb-sys = "0.3"
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.51", features = [
-    "Win32_Foundation",
-    "Win32_System_Console",
-] }
+windows = { version = "0.54", features = ["Win32_Foundation", "Win32_System_Console"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
@@ -58,3 +56,9 @@ custom-protocol = ["tauri/custom-protocol"]
 lto = true      # Enables link to optimizations
 opt-level = "s" # Optimize for binary size
 strip = true    # Remove debug symbols
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+multiple_crate_versions = "allow"
+missing_errors_doc = "allow"
