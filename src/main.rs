@@ -84,6 +84,7 @@ fn main() -> Result<()> {
 
             let args = app.state::<RwLock<Args>>();
             let config = app.state::<RwLock<Config>>();
+            println!("{:#?}\n{:#?}", args.read(), config.read());
 
             // One-shot command line argument to set the device and profile index
             if let Some(profile_index) = args.read().profile_index {
@@ -97,15 +98,19 @@ fn main() -> Result<()> {
                     config.read().swap_lighting,
                 );
 
+                println!("Profile Index Updated");
                 std::process::exit(0);
             }
 
-            // Scan for Wooting devices and Wootility profiles to save
+            println!("Scanning Wootility for devices and profiles to save");
             if let Ok(mut wootility) = Wootility::load() {
-                let Ok(devices) = wps::get_all_devices() else {
-                    eprintln!("Failed to find any devices");
-                    eprintln!("Make sure you run Wootility once");
-                    std::process::exit(1);
+                let devices = match wps::get_all_devices() {
+                    Ok(devices) => devices,
+                    Err(error) => {
+                        eprintln!("{error}");
+                        std::process::exit(1);
+                        // TODO: Add a GUI popup
+                    }
                 };
 
                 println!("Found Devices: {devices:#?}");
@@ -116,6 +121,10 @@ fn main() -> Result<()> {
                     .filter_map(|mut device| {
                         let device_id = DeviceID::from(&device);
                         let device_serial = DeviceSerial::from(&device);
+                        println!("Device ID: {device_id}");
+                        println!("Device Serial: {device_serial}");
+                        println!("Found Profiles: {:#?}", wootility.profiles);
+
                         device.profiles = wootility
                             .profiles
                             .devices
@@ -123,6 +132,7 @@ fn main() -> Result<()> {
                             .into_iter()
                             .map(|profile| profile.details.name)
                             .collect();
+
                         Some((device_serial, device))
                     })
                     .collect();
@@ -137,8 +147,10 @@ fn main() -> Result<()> {
             let auto_launch_manager = app.autolaunch();
             if let Some(auto_launch) = config.read().auto_launch {
                 let _ = if auto_launch {
+                    println!("Auto Launch Enabled");
                     auto_launch_manager.enable()
                 } else {
+                    println!("Auto Launch Disabled");
                     auto_launch_manager.disable()
                 };
             }
@@ -151,10 +163,13 @@ fn main() -> Result<()> {
                     tauri::async_runtime::block_on(async move {
                         match updater.check().await {
                             Ok(update) => {
+                                println!("Checking for updates...");
                                 if !update.is_update_available() {
+                                    println!("No updates found.");
                                     return;
                                 }
 
+                                println!("Update found, please wait...");
                                 if let Err(error) = update.download_and_install(|_event| {}).await {
                                     eprintln!("{error}");
                                 }

@@ -6281,7 +6281,7 @@ dependencies = [
 
 [[package]]
 name = "wooting-profile-switcher"
-version = "2.3.3"
+version = "2.3.4"
 dependencies = [
  "active-win-pos-rs",
  "anyhow",

@@ -85,7 +85,8 @@ impl TryFrom<Vec<u8>> for U32 {
             }
         }
 
-        bail!("Incomplete integer")
+        println!("Incomplete integer");
+        Ok(Self(result))
     }
 }
 
@@ -129,9 +130,13 @@ impl TryFrom<Vec<u8>> for Device {
                     index += 1;
                 }
                 6 => {
-                    let bytes = vec![buffer[index], buffer[index + 1]];
+                    let mut bytes = vec![buffer[index]];
+                    while buffer[index] >> 3 != 0 {
+                        index += 1;
+                        bytes.push(buffer[index]);
+                    }
                     device.product_id = U32::try_from(bytes)?.0;
-                    index += 2;
+                    index += 1;
                 }
                 7 => {
                     let bytes = vec![buffer[index]];
@@ -208,9 +213,15 @@ impl From<&Device> for DeviceID {
             device.revision,
             device.week,
             device.year,
-            device.pcb_design.unwrap_or_default(),
-            device.minor_rev.unwrap_or_default(),
-            device.variant.unwrap_or_default(),
+            device
+                .pcb_design
+                .map_or_else(String::new, |pcb_design| format!("T{pcb_design:02}")),
+            device
+                .minor_rev
+                .map_or_else(String::new, |minor_rev| format!("{minor_rev:02}")),
+            device
+                .variant
+                .map_or_else(String::new, |variant| format!("S{variant:02}")),
         );
 
         Self(device_id)
@@ -294,10 +305,6 @@ impl TryFrom<DeviceSerial> for Device {
 #[allow(clippy::too_many_lines)]
 pub fn get_active_device() -> Result<Device> {
     unsafe {
-        if !rgb::wooting_usb_find_keyboard() {
-            bail!("Failed to find keyboard")
-        };
-
         /* Response Bytes
          * 0-1 Magic Word
          * 2   Command
@@ -331,6 +338,7 @@ pub fn get_active_device() -> Result<Device> {
             bail!("Invalid response command");
         }
 
+        println!("Serial Buffer: {:?}", &buffer[5..5 + buffer[4] as usize]);
         let wooting_usb_meta = *rgb::wooting_usb_get_meta();
         let c_str_model_name = CStr::from_ptr(wooting_usb_meta.model);
         let mut device = Device::try_from(buffer)?;
@@ -345,7 +353,9 @@ pub fn get_all_devices() -> Result<Vec<Device>> {
 
     unsafe {
         rgb::wooting_usb_disconnect(false);
-        rgb::wooting_usb_find_keyboard();
+        if !rgb::wooting_usb_find_keyboard() {
+            bail!("Failed to find keyboard(s)")
+        };
 
         for device_index in 0..MAX_DEVICES {
             if !rgb::wooting_usb_select_device(device_index) {
