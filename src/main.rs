@@ -112,7 +112,6 @@ fn main() -> Result<()> {
                         // TODO: Add a GUI popup
                     }
                 };
-
                 println!("Found Devices: {devices:#?}");
 
                 let mut config = config.write();

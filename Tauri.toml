@@ -1,12 +1,18 @@
 [package]
 productName = "wooting-profile-switcher"
-version = "2.3.4"
+version = "2.3.5"
 
 [tauri.bundle]
 active = true
 targets = "all"
 identifier = "com.shaybox.wooting-profile-switcher"
-icon = ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
+icon = [
+    "icons/32x32.png",
+    "icons/128x128.png",
+    "icons/128x128@2x.png",
+    "icons/icon.icns",
+    "icons/icon.ico",
+]
 copyright = "Copyright (c) 2021 Shayne Hartford"
 category = "Utility"
 shortDescription = "Automatically switch Wooting keyboard profiles based on focused window"
@@ -25,4 +31,6 @@ devPath = "src"
 distDir = "src"
 
 [plugins.updater]
-endpoints = ["https://github.com/ShayBox/Wooting-Profile-Switcher/releases/latest/download/latest.json"]
+endpoints = [
+    "https://github.com/ShayBox/Wooting-Profile-Switcher/releases/latest/download/latest.json",
+]

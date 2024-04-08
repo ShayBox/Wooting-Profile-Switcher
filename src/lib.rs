@@ -213,15 +213,9 @@ impl From<&Device> for DeviceID {
             device.revision,
             device.week,
             device.year,
-            device
-                .pcb_design
-                .map_or_else(String::new, |pcb_design| format!("T{pcb_design:02}")),
-            device
-                .minor_rev
-                .map_or_else(String::new, |minor_rev| format!("{minor_rev:02}")),
-            device
-                .variant
-                .map_or_else(String::new, |variant| format!("S{variant:02}")),
+            device.pcb_design.map_or(String::new(), |v| v.to_string()),
+            device.minor_rev.map_or(String::new(), |v| v.to_string()),
+            device.variant.map_or(String::new(), |v| v.to_string()),
         );
 
         Self(device_id)
