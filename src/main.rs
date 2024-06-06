@@ -10,15 +10,8 @@ use clap::Parser;
 use parking_lot::RwLock;
 use regex::Regex;
 use tauri::{
-    AppHandle,
-    Builder,
-    CustomMenuItem,
-    Manager,
-    RunEvent,
-    SystemTray,
-    SystemTrayEvent,
-    SystemTrayMenu,
-    SystemTrayMenuItem,
+    AppHandle, Builder, CustomMenuItem, Manager, RunEvent, SystemTray, SystemTrayEvent,
+    SystemTrayMenu, SystemTrayMenuItem,
 };
 use tauri_egui::EguiPluginBuilder;
 use tauri_plugin_autostart::{MacosLauncher::LaunchAgent, ManagerExt};
@@ -352,7 +345,7 @@ fn active_window_polling_task(app: &AppHandle) -> Result<()> {
             continue;
         }
 
-        last_device_indices = device_indices.clone();
+        last_device_indices.clone_from(&device_indices);
 
         println!("Updated Device Indices: {device_indices:#?}");
         wps::set_device_indices(

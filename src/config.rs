@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     ffi::OsStr,
     fs::File,
-    io::{Read, Seek, Write},
+    io::{Read, Write},
     path::PathBuf,
 };
 
@@ -21,7 +21,7 @@ pub enum Theme {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Rule {
-    pub alias:          String,
+    pub alias: String,
     pub device_indices: DeviceIndices,
     #[serde(alias = "app_name")]
     pub match_app_name: Option<String>,
@@ -112,27 +112,32 @@ impl Config {
 
     pub fn load() -> Result<Self> {
         let path = Self::get_path()?;
-        let Ok(mut file) = File::open(&path) else {
+        let config = if let Ok(mut file) = File::open(&path) {
+            let mut text = String::new();
+            file.read_to_string(&mut text)?;
+
+            match serde_json::from_str(&text) {
+                Ok(config) => config,
+                Err(error) => {
+                    eprintln!("There was an error parsing the config: {error}");
+                    eprintln!("Temporarily using the default config");
+                    Self::default()
+                }
+            }
+        } else {
+            if path.exists() {
+                // Rename the existing config file
+                let new_path = path.join(".bak");
+                std::fs::rename(&path, &new_path)?;
+                eprintln!("Config file renamed to: {new_path:?}");
+            }
+
+            // Create a new config file and write default config
             let mut file = File::create(&path)?;
             let config = Self::default();
             let text = serde_json::to_string_pretty(&config)?;
             file.write_all(text.as_bytes())?;
-
-            return Ok(config);
-        };
-
-        let mut text = String::new();
-        file.read_to_string(&mut text)?;
-        file.rewind()?;
-
-        let config = match serde_json::from_str(&text) {
-            Ok(config) => config,
-            Err(error) => {
-                eprintln!("There was an error parsing the config: {error}");
-                eprintln!("Temporarily using the default config");
-
-                Self::default()
-            }
+            config
         };
 
         Ok(config)

@@ -9,25 +9,10 @@ use tauri::{AppHandle, Manager};
 use tauri_egui::{
     eframe::{App, CreationContext, Frame, IconData, NativeOptions},
     egui::{
-        self,
-        menu::bar as MenuBar,
-        Align,
-        Button,
-        CentralPanel,
-        Color32,
-        Context,
-        Layout,
-        ScrollArea,
-        SidePanel,
-        Slider,
-        Stroke,
-        TopBottomPanel,
-        Vec2,
-        Visuals,
-        Window,
+        self, menu::bar as MenuBar, Align, Button, CentralPanel, Color32, Context, Layout,
+        ScrollArea, SidePanel, Slider, Stroke, TopBottomPanel, Vec2, Visuals, Window,
     },
-    EguiPluginHandle,
-    Error,
+    EguiPluginHandle, Error,
 };
 use tauri_plugin_autostart::ManagerExt;
 use wooting_profile_switcher as wps;
@@ -46,25 +31,25 @@ const CARGO_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Clone, Debug)]
 struct SelectedRule {
-    alias:          String,
+    alias: String,
     device_indices: DeviceIndices,
     match_app_name: String,
     match_bin_name: String,
     match_bin_path: String,
     match_win_name: String,
-    rule_index:     usize,
+    rule_index: usize,
 }
 
 impl SelectedRule {
     fn new(rule: Rule, i: usize) -> Self {
         Self {
-            alias:          rule.alias,
+            alias: rule.alias,
             device_indices: rule.device_indices,
             match_app_name: rule.match_app_name.unwrap_or_default(),
             match_bin_name: rule.match_bin_name.unwrap_or_default(),
             match_bin_path: rule.match_bin_path.unwrap_or_default(),
             match_win_name: rule.match_win_name.unwrap_or_default(),
-            rule_index:     i,
+            rule_index: i,
         }
     }
 }
@@ -72,7 +57,7 @@ impl SelectedRule {
 impl From<SelectedRule> for Rule {
     fn from(rule: SelectedRule) -> Self {
         Self {
-            alias:          rule.alias,
+            alias: rule.alias,
             device_indices: rule.device_indices,
             match_app_name: rule
                 .match_app_name
@@ -101,13 +86,13 @@ impl From<SelectedRule> for Rule {
 #[allow(clippy::module_name_repetitions)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct MainApp {
-    app_handle:          AppHandle,
-    open_about:          bool,
-    open_auto_launch:    bool,
-    open_auto_update:    bool,
+    app_handle: AppHandle,
+    open_about: bool,
+    open_auto_launch: bool,
+    open_auto_update: bool,
     open_new_rule_setup: bool,
     open_confirm_delete: bool,
-    selected_rule:       Option<SelectedRule>,
+    selected_rule: Option<SelectedRule>,
 }
 
 impl MainApp {
@@ -142,13 +127,13 @@ impl MainApp {
         cc.egui_ctx.set_pixels_per_point(config.ui.scale);
 
         Self {
-            app_handle:          app,
-            open_about:          false,
-            open_auto_launch:    config.auto_launch.is_none(),
-            open_auto_update:    config.auto_update.is_none(),
+            app_handle: app,
+            open_about: false,
+            open_auto_launch: config.auto_launch.is_none(),
+            open_auto_update: config.auto_update.is_none(),
             open_new_rule_setup: false,
             open_confirm_delete: false,
-            selected_rule:       None,
+            selected_rule: None,
         }
     }
 
@@ -465,13 +450,15 @@ impl App for MainApp {
                         ui.horizontal(|ui| {
                             if ui.button("⬆").clicked() {
                                 let mut config = config.write();
-                                config.rules.swap(i, i - 1);
+                                let end = config.rules.len() - 1;
+                                config.rules.swap(i, if i == 0 { end } else { i - 1 });
                                 config.save().expect("Failed to move rule up");
                             }
 
                             if ui.button("⬇").clicked() {
                                 let mut config = config.write();
-                                config.rules.swap(i, i + 1);
+                                let end = config.rules.len() - 1;
+                                config.rules.swap(i, if i == end { 0 } else { i + 1 });
                                 config.save().expect("Failed to move rule down");
                             }
 

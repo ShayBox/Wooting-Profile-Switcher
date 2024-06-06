@@ -49,17 +49,17 @@ pub struct DeviceSerial(String);
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Device {
     pub model_name: String,
-    pub supplier:   u32,
-    pub year:       u32,
-    pub week:       u32,
-    pub product:    u32,
-    pub revision:   u32,
+    pub supplier: u32,
+    pub year: u32,
+    pub week: u32,
+    pub product: u32,
+    pub revision: u32,
     pub product_id: u32,
-    pub stage:      Stage,
-    pub variant:    Option<u32>,
+    pub stage: Stage,
+    pub variant: Option<u32>,
     pub pcb_design: Option<u32>,
-    pub minor_rev:  Option<u32>,
-    pub profiles:   Vec<String>,
+    pub minor_rev: Option<u32>,
+    pub profiles: Vec<String>,
 }
 
 /* Implementations */

@@ -46,7 +46,7 @@ jobs:
 
       - name: Add Rust Target (macOS)
         if: ${{ matrix.runner == 'macos-latest' }}
-        run: rustup target add aarch64-apple-darwin
+        run: rustup target add x86_64-apple-darwin
 
       - name: Add Rust Target (Other)
         if: ${{ matrix.runner != 'macos-latest' }}

@@ -1,7 +1,7 @@
 [package]
 name = "wooting-profile-switcher"
 description = "Wooting Profile Switcher"
-version = "2.3.5"
+version = "2.3.6"
 authors = ["Shayne Hartford <shaybox@shaybox.com>", "Tony Langhammer"]
 edition = "2021"
 readme = "README.md"
@@ -44,7 +44,7 @@ wildflower = "0.3"
 wooting-rgb-sys = "0.3"
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.54", features = [
+windows = { version = "0.56", features = [
     "Win32_Foundation",
     "Win32_System_Console",
 ] }

@@ -1,6 +1,6 @@
 [package]
 productName = "wooting-profile-switcher"
-version = "2.3.5"
+version = "2.3.6"
 
 [tauri.bundle]
 active = true
