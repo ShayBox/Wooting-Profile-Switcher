@@ -1,7 +1,7 @@
 [package]
 name = "wooting-profile-switcher"
 description = "Wooting Profile Switcher"
-version = "2.3.6"
+version = "2.4.0"
 authors = ["Shayne Hartford <shaybox@shaybox.com>", "Tony Langhammer"]
 edition = "2021"
 readme = "README.md"
@@ -11,14 +11,14 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "=2.0.0-alpha.6", features = ["config-toml"] }
+tauri-build = { git = "https://github.com/tauri-apps/tauri", rev = "bd29b05", features = ["config-toml"] }
 
 [dependencies]
 active-win-pos-rs = "0.8"
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 ctrlc = { version = "3", features = ["termination"] }
-derive_more = "0.99"
+derive_more = { version = "1", features = ["full"] }
 dirs = "5"
 egui_extras = "=0.22"
 encoding_rs = "0.8"
@@ -34,20 +34,17 @@ serde_json = "1"
 serde_with = { version = "3", features = ["json"] }
 structstruck = "0.4"
 strum = { version = "0.26", features = ["derive"] }
-tauri = { version = "=2.0.0-alpha.10", features = ["system-tray"] }
-tauri-egui = { git = "https://github.com/Shays-Forks/tauri-egui.git", branch = "0.22" }
-tauri-plugin-autostart = "=2.0.0-alpha.0"
-tauri-plugin-single-instance = "=2.0.0-alpha.0"
-tauri-plugin-updater = "=2.0.0-alpha.0"
-tauri-utils = "=2.0.0-alpha.6"
+tauri = { git = "https://github.com/tauri-apps/tauri", rev = "bd29b05", features = ["system-tray"] }
+tauri-egui = { git = "https://github.com/Shays-Forks/tauri-egui", branch = "0.22" }
+tauri-plugin-autostart = { git = "https://github.com/Shays-Forks/plugins-workspace" }
+tauri-plugin-single-instance = { git = "https://github.com/Shays-Forks/plugins-workspace" }
+tauri-plugin-updater = { git = "https://github.com/Shays-Forks/plugins-workspace" }
+tauri-utils = { git = "https://github.com/tauri-apps/tauri", rev = "bd29b05" }
 wildflower = "0.3"
 wooting-rgb-sys = "0.3"
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.56", features = [
-    "Win32_Foundation",
-    "Win32_System_Console",
-] }
+windows = { version = "0.58", features = ["Win32_Foundation", "Win32_System_Console"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{json::JsonString, serde_as};
 use wooting_profile_switcher::DeviceID;
 
-// This isn't exactly pretty but it reduces a lot of duplicated code
+// This isn't exactly pretty, but it reduces a lot of duplicated code
 structstruck::strike! {
     #[strikethrough[serde_as]]
     #[strikethrough[derive(Clone, Debug, Default, Deserialize, Serialize)]]
@@ -15,14 +15,10 @@ structstruck::strike! {
     pub struct Wootility {
         #[serde_as(as = "JsonString")]
         pub profiles: struct {
-            pub current: struct {
-                pub device_profile: u8,
-                pub device_id: DeviceID,
-            },
             pub devices: HashMap<DeviceID, Vec<pub struct Profile {
                 pub details: struct {
                     pub name: String,
-                    pub uuid: String,
+                    pub uid: String,
                 },
             }>>,
         }
@@ -31,9 +27,9 @@ structstruck::strike! {
 
 impl Wootility {
     pub fn get_path() -> Result<PathBuf> {
-        ["", "-beta", "-alpha"]
+        ["", "-lekker", "-lekker-beta", "-lekker-alpha"]
             .into_iter()
-            .map(|path| format!("wootility-lekker{path}/Local Storage/leveldb"))
+            .map(|path| format!("wootility{path}/Local Storage/leveldb"))
             .map(|path| dirs::config_dir().unwrap().join(path))
             .find(|path| path.exists())
             .ok_or_else(|| anyhow!("Couldn't find Wootility path"))
