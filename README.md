@@ -130,3 +130,11 @@ The config file is generated on first-run in the following location and format
     },
 }
 ```
+
+#### Wayland Support
+
+This program does not officially support Wayland.  
+This is because most compositors don't support the `foreign-toplevel-management` protocol.  
+There's no way for programs to detect the active focused Wayland window, only X11 / Xwayland.
+The version of Tauri (`tauri-egui`) this program uses didn't yet support Wayland either, so the window doesn't appear.
+You can use this program to detect Xwayland windows headlessly using only the config and tray icon, but it's not great.

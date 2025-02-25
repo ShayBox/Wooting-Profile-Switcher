@@ -49,17 +49,17 @@ pub struct DeviceSerial(String);
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Device {
     pub model_name: String,
-    pub supplier: u32,
-    pub year: u32,
-    pub week: u32,
-    pub product: u32,
-    pub revision: u32,
+    pub supplier:   u32,
+    pub year:       u32,
+    pub week:       u32,
+    pub product:    u32,
+    pub revision:   u32,
     pub product_id: u32,
-    pub stage: Stage,
-    pub variant: Option<u32>,
+    pub stage:      Stage,
+    pub variant:    Option<u32>,
     pub pcb_design: Option<u32>,
-    pub minor_rev: Option<u32>,
-    pub profiles: Vec<String>,
+    pub minor_rev:  Option<u32>,
+    pub profiles:   Vec<String>,
 }
 
 /* Implementations */
@@ -189,8 +189,7 @@ impl TryFrom<Vec<u8>> for Device {
 
 impl From<&Device> for DeviceID {
     fn from(device: &Device) -> Self {
-        // These must match exactly what the Wooting firmware reports
-        // https://github.com/WootingKb/wooting-rgb-sdk/blob/main/src/wooting-usb.c#L85
+        // These must match exactly what the Wooting firmware reports (Wootility var KeyboardType)
         let keyboard_type = match device.model_name.as_str() {
             "Wooting One" => 0,
             "Wooting Two" => 1,
@@ -202,7 +201,8 @@ impl From<&Device> for DeviceID {
             "Wooting UwU" => 7,
             "Wooting UwU RGB" => 8,
             "Wooting 60HE+" => 9,
-            &_ => 10,
+            "Wooting 80HE" => 10,
+            &_ => 11,
         };
 
         let device_id = format!(
