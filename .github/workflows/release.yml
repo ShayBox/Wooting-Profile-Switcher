@@ -28,25 +28,13 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Fetch Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Update and Install Dependencies (Linux)
         if: ${{ matrix.runner == 'ubuntu-latest' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libhidapi-dev libayatana-appindicator3-dev libsoup-3.0-dev javascriptcoregtk-4.1-dev librsvg2-dev
-
-      - name: Install libffi6
-        if: ${{ matrix.runner == 'ubuntu-latest' }}
-        run: |
-          curl -LO http://archive.ubuntu.com/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
-          sudo dpkg -i libffi6_3.2.1-8_amd64.deb
-
-      - name: Install libcroco3
-        if: ${{ matrix.runner == 'ubuntu-latest' }}
-        run: |
-          curl -LO https://archive.ubuntu.com/ubuntu/pool/main/libc/libcroco/libcroco3_0.6.13-1ubuntu0.1_amd64.deb
-          sudo dpkg -i 	libcroco3_0.6.13-1ubuntu0.1_amd64.deb
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v2
@@ -64,10 +52,6 @@ jobs:
         if: ${{ matrix.runner != 'macos-latest' }}
         run: rustup target add ${{ matrix.target }}
 
-      - name: Install Tauri CLI
-        run: |
-          rustup toolchain install 1.79
-          rustup run 1.79 cargo install --locked --git https://github.com/Shays-Forks/tauri.git tauri-cli
 
       - name: Build Tauri Installers/Bundles/Images
         uses: tauri-apps/tauri-action@dev
@@ -79,7 +63,6 @@ jobs:
           args: --target ${{ matrix.target }} --verbose
           releaseId: ${{ github.event.release.id }}
           tagName: ${{ github.ref_name }}
-          tauriScript: "cargo tauri"
 
       - name: Build Portable Binary (Windows)
         if: ${{ matrix.runner == 'windows-latest' }}

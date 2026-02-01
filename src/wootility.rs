@@ -9,9 +9,10 @@ use wooting_profile_switcher::DeviceID;
 
 // This isn't exactly pretty, but it reduces a lot of duplicated code
 structstruck::strike! {
-    #[strikethrough[serde_as]]
-    #[strikethrough[derive(Clone, Debug, Default, Deserialize, Serialize)]]
-    #[strikethrough[serde(rename_all = "camelCase")]]
+
+    #[structstruck::each[serde_as]]
+    #[structstruck::each[derive(Clone, Debug, Default, Deserialize, Serialize)]]
+    #[structstruck::each[serde(rename_all = "camelCase")]]
     pub struct Wootility {
         #[serde_as(as = "JsonString")]
         pub profiles: struct {

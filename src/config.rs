@@ -11,17 +11,12 @@ use serde::{Deserialize, Serialize};
 use wooting_profile_switcher as wps;
 use wps::{Device, DeviceIndices, DeviceSerial};
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub enum Theme {
-    #[default]
-    Dark,
-    Light,
-}
+use crate::theme::Theme;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Rule {
-    pub alias: String,
+    pub alias:          String,
     pub device_indices: DeviceIndices,
     #[serde(alias = "app_name")]
     pub match_app_name: Option<String>,
@@ -116,20 +111,17 @@ impl Config {
             let mut text = String::new();
             file.read_to_string(&mut text)?;
 
-            match serde_json::from_str(&text) {
-                Ok(config) => config,
-                Err(error) => {
-                    eprintln!("There was an error parsing the config: {error}");
-                    eprintln!("Temporarily using the default config");
-                    Self::default()
-                }
-            }
+            serde_json::from_str(&text).unwrap_or_else(|error| {
+                eprintln!("There was an error parsing the config: {error}");
+                eprintln!("Temporarily using the default config");
+                Self::default()
+            })
         } else {
             if path.exists() {
                 // Rename the existing config file
                 let new_path = path.join(".bak");
                 std::fs::rename(&path, &new_path)?;
-                eprintln!("Config file renamed to: {new_path:?}");
+                eprintln!("Config file renamed to: {}", new_path.display());
             }
 
             // Create a new config file and write default config
@@ -143,7 +135,7 @@ impl Config {
         Ok(config)
     }
 
-    pub fn save(&mut self) -> Result<()> {
+    pub fn save(&self) -> Result<()> {
         let path = Self::get_path()?;
         let mut file = File::options()
             .write(true)

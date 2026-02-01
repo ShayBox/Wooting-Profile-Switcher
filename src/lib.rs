@@ -8,17 +8,19 @@ use wooting_rgb_sys as rgb;
 
 /* Constants */
 
+// Reverse Engineered from Wootility
 // https://gist.github.com/BigBrainAFK/0ba454a1efb43f7cb6301cda8838f432
-#[allow(clippy::cast_possible_truncation)] // Max is 10
-const MAX_DEVICES: u8 = rgb::WOOTING_MAX_RGB_DEVICES as u8;
-const MAX_LENGTH: usize = u8::MAX as usize + 1;
-const MAGIC_WORD: u16 = 56016;
+const MAGIC_WORD_V2: u16 = 0xDAD0;
+const MAGIC_WORD_V3: u16 = 0xDAD1;
 const GET_SERIAL: u8 = 3;
 const RELOAD_PROFILE: u8 = 7;
 const GET_CURRENT_KEYBOARD_PROFILE_INDEX: u8 = 11;
 const ACTIVATE_PROFILE: u8 = 23;
 const REFRESH_RGB_COLORS: u8 = 29;
 const WOOT_DEV_RESET_ALL: u8 = 32;
+
+#[allow(clippy::cast_possible_truncation)] // Max is 10
+const WOOTING_RGB_MAX_DEVICES: u8 = rgb::WOOTING_MAX_RGB_DEVICES as u8;
 
 /* Typings */
 
@@ -90,7 +92,7 @@ impl TryFrom<Vec<u8>> for U32 {
     }
 }
 
-/// Reverse engineered from Wootility
+/// Reverse Engineered from Wootility
 impl TryFrom<Vec<u8>> for Device {
     type Error = Error;
 
@@ -254,7 +256,7 @@ impl TryFrom<DeviceID> for Device {
             rgb::wooting_usb_disconnect(false);
             rgb::wooting_usb_find_keyboard();
 
-            for device_index in 0..MAX_DEVICES {
+            for device_index in 0..WOOTING_RGB_MAX_DEVICES {
                 if !rgb::wooting_usb_select_device(device_index) {
                     continue;
                 }
@@ -278,7 +280,7 @@ impl TryFrom<DeviceSerial> for Device {
             rgb::wooting_usb_disconnect(false);
             rgb::wooting_usb_find_keyboard();
 
-            for device_index in 0..MAX_DEVICES {
+            for device_index in 0..WOOTING_RGB_MAX_DEVICES {
                 if !rgb::wooting_usb_select_device(device_index) {
                     continue;
                 }
@@ -299,17 +301,30 @@ impl TryFrom<DeviceSerial> for Device {
 #[allow(clippy::too_many_lines)]
 pub fn get_active_device() -> Result<Device> {
     unsafe {
-        /* Response Bytes
+        /* Response Bytes (standard reports)
          * 0-1 Magic Word
          * 2   Command
          * 3   Unknown
          * 4   Length
          * 5-L Buffer
+         *
+         * Multi-report responses include a report ID at byte 0, shifting the
+         * fields above by +1 and using magic word 0xD1DA.
          */
-        let mut buffer = vec![0u8; MAX_LENGTH];
+        let response_size = rgb::wooting_usb_get_response_size() as usize;
+        let uses_multi_report = rgb::wooting_usb_use_multi_report();
+        let report_offset = usize::from(uses_multi_report);
+        let extra_data_offset = usize::from(uses_multi_report);
+        let expected_magic_word = if uses_multi_report {
+            MAGIC_WORD_V3
+        } else {
+            MAGIC_WORD_V2
+        };
+
+        let mut buffer = vec![0u8; response_size];
         let response = rgb::wooting_usb_send_feature_with_response(
             buffer.as_mut_ptr(),
-            MAX_LENGTH,
+            response_size,
             GET_SERIAL,
             0,
             0,
@@ -318,24 +333,41 @@ pub fn get_active_device() -> Result<Device> {
         );
 
         #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-        if response != MAX_LENGTH as i32 {
-            bail!("Invalid response length");
+        if response != response_size as i32 {
+            bail!("Invalid response length: got {response}, expected {response_size}");
         }
 
-        let magic_word = u16::from_le_bytes([buffer[0], buffer[1]]);
-        if magic_word != MAGIC_WORD {
+        let normalized = if report_offset == 0 {
+            buffer
+        } else {
+            buffer[report_offset..].to_vec()
+        };
+
+        let magic_word = u16::from_le_bytes([normalized[0], normalized[1]]);
+        if magic_word != expected_magic_word {
             bail!("Invalid response type");
         }
 
-        let command = buffer[2];
+        let command = normalized[2];
         if command != GET_SERIAL {
             bail!("Invalid response command");
         }
 
-        println!("Serial Buffer: {:?}", &buffer[5..5 + buffer[4] as usize]);
+        let length = normalized[4] as usize;
+        let data_start = 5 + extra_data_offset;
+
+        #[cfg(debug_assertions)]
+        println!(
+            "Serial Buffer: {:?}",
+            &normalized[data_start..data_start + length]
+        );
         let wooting_usb_meta = *rgb::wooting_usb_get_meta();
         let c_str_model_name = CStr::from_ptr(wooting_usb_meta.model);
-        let mut device = Device::try_from(buffer)?;
+        let mut parse_buffer = normalized;
+        if uses_multi_report && parse_buffer.len() > data_start {
+            parse_buffer.remove(5);
+        }
+        let mut device = Device::try_from(parse_buffer)?;
         device.model_name = c_str_model_name.to_str()?.replace("Lekker Edition", "LE");
 
         Ok(device)
@@ -349,9 +381,9 @@ pub fn get_all_devices() -> Result<Vec<Device>> {
         rgb::wooting_usb_disconnect(false);
         if !rgb::wooting_usb_find_keyboard() {
             bail!("Failed to find keyboard(s)")
-        };
+        }
 
-        for device_index in 0..MAX_DEVICES {
+        for device_index in 0..WOOTING_RGB_MAX_DEVICES {
             if !rgb::wooting_usb_select_device(device_index) {
                 continue;
             }
@@ -369,10 +401,15 @@ pub fn get_all_devices() -> Result<Vec<Device>> {
 #[must_use]
 pub fn get_active_profile_index() -> ProfileIndex {
     unsafe {
-        let mut buff = vec![0u8; MAX_LENGTH];
+        let response_size = rgb::wooting_usb_get_response_size() as usize;
+        let uses_multi_report = rgb::wooting_usb_use_multi_report();
+        let report_offset = if uses_multi_report { 1 } else { 0 };
+        let extra_data_offset = if uses_multi_report { 1 } else { 0 };
+
+        let mut buff = vec![0u8; response_size];
         let response = rgb::wooting_usb_send_feature_with_response(
             buff.as_mut_ptr(),
-            MAX_LENGTH,
+            response_size,
             GET_CURRENT_KEYBOARD_PROFILE_INDEX,
             0,
             0,
@@ -381,9 +418,12 @@ pub fn get_active_profile_index() -> ProfileIndex {
         );
 
         #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-        if response == MAX_LENGTH as i32 {
+        if response == response_size as i32 {
             let is_v2 = rgb::wooting_usb_use_v2_interface();
-            buff[if is_v2 { 5 } else { 4 }] as ProfileIndex
+            let data_offset = report_offset + if is_v2 { 5 } else { 4 } + extra_data_offset;
+            buff.get(data_offset)
+                .copied()
+                .unwrap_or(ProfileIndex::MAX as u8) as ProfileIndex
         } else {
             ProfileIndex::MAX
         }
@@ -397,7 +437,7 @@ pub fn get_device_indices() -> Result<DeviceIndices> {
         rgb::wooting_usb_disconnect(false);
         rgb::wooting_usb_find_keyboard();
 
-        for device_index in 0..MAX_DEVICES {
+        for device_index in 0..WOOTING_RGB_MAX_DEVICES {
             if !rgb::wooting_usb_select_device(device_index) {
                 continue;
             }
@@ -448,7 +488,7 @@ pub fn set_device_indices(
         rgb::wooting_usb_disconnect(false);
         rgb::wooting_usb_find_keyboard();
 
-        for device_index in 0..MAX_DEVICES {
+        for device_index in 0..WOOTING_RGB_MAX_DEVICES {
             if !rgb::wooting_usb_select_device(device_index) {
                 continue;
             }
@@ -458,7 +498,7 @@ pub fn set_device_indices(
             if let Some(profile_index) = device_indices.remove(&device_serial) {
                 // Silently ignore negative profile indexes as a way to skip updating devices
                 let _ = set_active_profile_index(profile_index, send_sleep_ms, swap_lighting);
-            };
+            }
         }
 
         rgb::wooting_rgb_reset_rgb();
@@ -474,7 +514,7 @@ pub fn select_device_serial(device_serial: &DeviceSerial) -> Result<Device> {
         rgb::wooting_usb_disconnect(false);
         rgb::wooting_usb_find_keyboard();
 
-        for device_index in 0..MAX_DEVICES {
+        for device_index in 0..WOOTING_RGB_MAX_DEVICES {
             if !rgb::wooting_usb_select_device(device_index) {
                 continue;
             }
