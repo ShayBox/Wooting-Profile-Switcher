@@ -19,7 +19,7 @@ You must install and run [Wootility](https://wooting.io/wootility) once, but mus
 
 ## Screenshots
 
-![MainApp](https://github.com/ShayBox/Wooting-Profile-Switcher/assets/9505196/2dabd348-2b5c-49b1-8a51-e9cc3fcdf6a9)
+![MainApp](https://github.com/user-attachments/assets/e65b4b89-8554-49f3-86a6-ad5f39d18bc9)
 
 ## System Tray Icon
 
@@ -30,7 +30,7 @@ The system tray icon allows you to pause/resume, reload, quit, and set the activ
 The config file is generated on first-run in the following location and format
 
 | Platform | Location                                 |
-| -------- | ---------------------------------------- |
+|----------|------------------------------------------|
 | Portable | Same location as the binary              |
 | Windows  | `C:\Users\...\AppData\Roaming`           |
 | macOS    | `/Users/.../Library/Application Support` |
@@ -105,14 +105,14 @@ The config file is generated on first-run in the following location and format
 
 ```json5
 {
-    "alias": "VRCX",
-    "match_app_name": null,
-    "match_bin_name": null,
-    "match_bin_path": null,
-    "match_win_name": "VRCX ????.??.??",
-    "device_indices": {
-      "A02B2106W031H00418": 0
-    },
+  "alias": "VRCX",
+  "match_app_name": null,
+  "match_bin_name": null,
+  "match_bin_path": null,
+  "match_win_name": "VRCX ????.??.??",
+  "device_indices": {
+    "A02B2106W031H00418": 0
+  },
 }
 ```
 
@@ -120,21 +120,19 @@ The config file is generated on first-run in the following location and format
 
 ```json5
 {
-    "alias": "Minecraft",
-    "match_app_name": null,
-    "match_bin_name": null,
-    "match_bin_path": null,
-    "match_win_name": "Minecraft [\d]+.[\d]+.[\d]+",
-    "device_indices": {
-      "A02B2106W031H00418": 0
-    },
+  "alias": "Minecraft",
+  "match_app_name": null,
+  "match_bin_name": null,
+  "match_bin_path": null,
+  "match_win_name": "Minecraft [\d]+.[\d]+.[\d]+",
+  "device_indices": {
+    "A02B2106W031H00418": 0
+  },
 }
 ```
 
 #### Wayland Support
 
 This program does not officially support Wayland.  
-This is because most compositors don't support the `foreign-toplevel-management` protocol.  
-There's no way for programs to detect the active focused Wayland window, only X11 / Xwayland.
-The version of Tauri (`tauri-egui`) this program uses didn't yet support Wayland either, so the window doesn't appear.
-You can use this program to detect Xwayland windows headlessly using only the config and tray icon, but it's not great.
+This is because `active-win-pos-rs` and `x-win` don't support the `foreign-toplevel-management` protocol.  
+There's no way for programs to detect the active focused Wayland window, only X11 / XWayland.
