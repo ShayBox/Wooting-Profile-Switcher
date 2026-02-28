@@ -1,4 +1,8 @@
-use std::{ops::Not, sync::LazyLock};
+use std::{
+    ops::{Not, Sub},
+    sync::LazyLock,
+    time::{Duration, Instant},
+};
 
 use egui_extras::{Column, TableBody, TableBuilder};
 use game_scanner::prelude::*;
@@ -139,17 +143,40 @@ impl MainApp {
             return Ok(());
         }
 
+        let config = app.state::<RwLock<Config>>().read().clone();
         let window = WindowBuilder::new(app, CARGO_PKG_NAME)
             .title(CARGO_PKG_DESCRIPTION)
             .inner_size(860.0, 560.0)
             .build()?;
 
         let app_handle = app.clone();
+        let mut last = Instant::now();
         app.start_egui_for_window(
             CARGO_PKG_NAME,
             Box::new(move |ctx| {
+                let start = Instant::now();
+                let delta = start.duration_since(last);
+                last = start;
+
                 let main_app = app_handle.state::<RwLock<Self>>();
-                main_app.write().update(ctx, &app_handle);
+                main_app.write().update(ctx, &app_handle, delta);
+
+                #[allow(clippy::cast_precision_loss)]
+                ctx.request_repaint_after_secs(1.0 / config.ui.frames as f32);
+                ctx.send_viewport_cmd(ViewportCommand::IMEAllowed(false));
+
+                let elapsed = start.elapsed();
+                let time = Duration::from_nanos(1_000_000_000 / config.ui.frames.max(1));
+                if elapsed < time {
+                    let remaining = time.sub(elapsed);
+                    if remaining > Duration::from_millis(1) {
+                        std::thread::sleep(remaining);
+                    }
+
+                    while start.elapsed() < time {
+                        std::hint::spin_loop();
+                    }
+                }
             }),
         )?;
 
@@ -246,7 +273,8 @@ impl MainApp {
         style.interaction.resize_grab_radius_corner *= scale;
     }
 
-    fn apply_theme(&mut self, ctx: &Context, config: &Config) {
+    fn apply_theme(&mut self, ctx: &Context, config: &RwLock<Config>) {
+        let config = config.read();
         let visuals = config.ui.theme.visuals();
         ctx.set_visuals(visuals.clone());
 
@@ -828,16 +856,12 @@ impl MainApp {
         });
     }
 
-    fn update(&mut self, ctx: &Context, app: &AppHandle) {
-        ctx.send_viewport_cmd(ViewportCommand::IMEAllowed(false));
-
+    fn update(&mut self, ctx: &Context, app: &AppHandle, _delta: Duration) {
         let args = app.state::<RwLock<Args>>();
         let config = app.state::<RwLock<Config>>();
         let active_info = app.state::<RwLock<ActiveMatchInfo>>();
-        let current_config = config.read();
-        self.apply_theme(ctx, &current_config);
-        drop(current_config);
 
+        self.apply_theme(ctx, &config);
         self.render_popups(ctx, app, &config);
         self.render_top_panel(ctx, &args, &config);
         self.render_rules_panel(ctx, &config);

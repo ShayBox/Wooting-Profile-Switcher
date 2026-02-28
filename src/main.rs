@@ -17,6 +17,7 @@ use tauri::{
     Builder,
     Manager,
     RunEvent,
+    WindowEvent,
 };
 use tauri_plugin_autostart::{MacosLauncher::LaunchAgent, ManagerExt};
 use tauri_plugin_egui::Builder as EguiPluginBuilder;
@@ -382,7 +383,7 @@ fn main() -> Result<()> {
             }
             RunEvent::WindowEvent {
                 label,
-                event: tauri::WindowEvent::CloseRequested { api, .. },
+                event: WindowEvent::CloseRequested { api, .. },
                 ..
             } => {
                 if label == MAIN_WINDOW_LABEL {

@@ -28,11 +28,22 @@ pub struct Rule {
     pub match_win_name: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Ui {
-    pub scale: f32,
-    pub theme: Theme,
+    pub frames: u64,
+    pub scale:  f32,
+    pub theme:  Theme,
+}
+
+impl Default for Ui {
+    fn default() -> Self {
+        Self {
+            frames: 60,
+            scale:  1.25,
+            theme:  Theme::Dark,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -59,26 +70,25 @@ impl Default for Config {
             send_sleep_ms: 250,
             show_serial: false,
             swap_lighting: true,
-            rules: vec![Rule {
-                alias: String::from("The Binding of Isaac"),
-                device_indices: DeviceIndices::new(),
-                match_app_name: None,
-                match_bin_name: None,
-                match_bin_path: Some(String::from("C:\\Program Files (x86)\\Steam\\steamapps\\common\\The Binding of Isaac Rebirth*")),
-                match_win_name: None,
-            },
-            Rule {
-                alias: String::from("Default Fallback"),
-                device_indices: wps::get_device_indices().unwrap_or_default(),
-                match_app_name: Some(String::from("*")),
-                match_bin_name: Some(String::from("*")),
-                match_bin_path: Some(String::from("*")),
-                match_win_name: Some(String::from("*")),
-            }],
-            ui: Ui {
-                scale: 1.25,
-                theme: Theme::Dark,
-            },
+            rules: vec![
+                Rule {
+                    alias: String::from("The Binding of Isaac"),
+                    device_indices: DeviceIndices::new(),
+                    match_app_name: None,
+                    match_bin_name: None,
+                    match_bin_path: Some(String::from("C:\\Program Files (x86)\\Steam\\steamapps\\common\\The Binding of Isaac Rebirth*")),
+                    match_win_name: None,
+                },
+                Rule {
+                    alias: String::from("Default Fallback"),
+                    device_indices: wps::get_device_indices().unwrap_or_default(),
+                    match_app_name: Some(String::from("*")),
+                    match_bin_name: Some(String::from("*")),
+                    match_bin_path: Some(String::from("*")),
+                    match_win_name: Some(String::from("*")),
+                }
+            ],
+            ui: Ui::default(),
         }
     }
 }

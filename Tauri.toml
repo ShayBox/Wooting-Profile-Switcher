@@ -1,5 +1,5 @@
 product-name = "wooting-profile-switcher"
-version = "3.0.0"
+version = "3.0.1"
 identifier = "com.shaybox.wooting-profile-switcher"
 
 [bundle]
