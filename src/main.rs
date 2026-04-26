@@ -10,21 +10,21 @@ use clap::Parser;
 use parking_lot::RwLock;
 use regex::Regex;
 use tauri::{
-    image::Image,
-    menu::{CheckMenuItem, MenuBuilder, MenuItem},
-    tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
     AppHandle,
     Builder,
     Manager,
     RunEvent,
     WindowEvent,
+    image::Image,
+    menu::{CheckMenuItem, MenuBuilder, MenuItem},
+    tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
 };
 use tauri_plugin_autostart::{MacosLauncher::LaunchAgent, ManagerExt};
 use tauri_plugin_egui::Builder as EguiPluginBuilder;
 use tauri_plugin_updater::UpdaterExt;
 use wildflower::Pattern;
 #[cfg(target_os = "windows")]
-use windows::Win32::System::Console::{AttachConsole, FreeConsole, ATTACH_PARENT_PROCESS};
+use windows::Win32::System::Console::{ATTACH_PARENT_PROCESS, AttachConsole, FreeConsole};
 use wootility::Wootility;
 use wooting_profile_switcher as wps;
 use wooting_rgb_sys as rgb;
@@ -76,7 +76,7 @@ struct ActiveMatchInfo {
 fn main() -> Result<()> {
     #[cfg(target_os = "linux")]
     if std::env::var_os("GDK_BACKEND").is_none() {
-        std::env::set_var("GDK_BACKEND", "x11");
+        unsafe { std::env::set_var("GDK_BACKEND", "x11") }
     }
 
     // Reset the keyboard if the program panics

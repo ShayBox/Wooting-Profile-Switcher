@@ -1,9 +1,9 @@
 [package]
 name = "wooting-profile-switcher"
 description = "Wooting Profile Switcher"
-version = "3.0.1"
+version = "3.0.2"
 authors = ["Shayne Hartford <shaybox@shaybox.com>", "Tony Langhammer"]
-edition = "2021"
+edition = "2024"
 readme = "README.md"
 repository = "https://github.com/ShayBox/Wooting-Profile-Switcher"
 license = "MIT"
@@ -14,7 +14,7 @@ license = "MIT"
 tauri-build = { version = "2", features = ["config-toml"] }
 
 [dependencies]
-active-win-pos-rs = "0.9"
+active-win-pos-rs = "0.10"
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 ctrlc = { version = "3", features = ["termination"] }
