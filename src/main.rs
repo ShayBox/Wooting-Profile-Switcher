@@ -160,6 +160,7 @@ fn main() -> Result<()> {
                                 .profiles
                                 .devices
                                 .remove(&device_id)?
+                                .onboard
                                 .into_iter()
                                 .map(|profile| profile.details.name)
                                 .collect();

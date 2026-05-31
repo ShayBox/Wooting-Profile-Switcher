@@ -9,19 +9,21 @@ use wooting_profile_switcher::DeviceID;
 
 // This isn't exactly pretty, but it reduces a lot of duplicated code
 structstruck::strike! {
-
     #[structstruck::each[serde_as]]
     #[structstruck::each[derive(Clone, Debug, Default, Deserialize, Serialize)]]
     #[structstruck::each[serde(rename_all = "camelCase")]]
     pub struct Wootility {
         #[serde_as(as = "JsonString")]
         pub profiles: struct {
-            pub devices: HashMap<DeviceID, Vec<pub struct Profile {
-                pub details: struct {
-                    pub name: String,
-                    pub uid: String,
-                },
-            }>>,
+            pub devices: HashMap<DeviceID, pub struct DeviceProfiles {
+                pub onboard: Vec<pub struct Profile {
+                    pub details: struct {
+                        pub name: String,
+                        pub uid: String,
+                    },
+                }>,
+                pub linked: Vec<Profile>,
+            }>,
         }
     }
 }
